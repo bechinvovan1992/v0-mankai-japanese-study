@@ -29,6 +29,23 @@ export interface Player {
   assignedQuestions: Question[]
 }
 
+export type GameMode = 
+  | "guess"           // Guess Mode - verbal answer, reveal
+  | "multiple"        // Multiple Choice Mode
+  | "elimination"     // Elimination Mode
+  | "speed"           // Speed Mode with timer
+  | "hidden"          // Hidden Answers Mode
+  | "truefalse"       // True or False Mode
+  | "suddendeath"     // Sudden Death Mode
+  | "teambattle"      // Team Battle Mode
+
+export interface Team {
+  id: string
+  name: string
+  players: Player[]
+  score: number
+}
+
 export interface GameRound {
   id: string
   createdAt: string
@@ -37,6 +54,10 @@ export interface GameRound {
   currentPlayerIndex: number
   totalQuestions: number
   remainingQuestions: number
+  gameMode: GameMode
+  teams?: Team[]
+  currentTeamIndex?: number
+  suddenDeathEliminated?: string[] // Player IDs who are eliminated
 }
 
 export interface Settings {

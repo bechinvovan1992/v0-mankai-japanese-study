@@ -2,7 +2,7 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { Dataset, Player, GameRound, Settings, Question } from "./types"
+import type { Dataset, Player, GameRound, Settings, Question, GameMode, Team } from "./types"
 
 interface AppState {
   // Datasets
@@ -26,10 +26,16 @@ interface AppState {
 
   // Game
   gameRound: GameRound | null
+  selectedGameMode: GameMode
+  setGameMode: (mode: GameMode) => void
   startGame: () => void
   endGame: () => void
   markQuestionPlayed: (questionId: string, correct: boolean) => void
   nextPlayer: () => void
+  eliminatePlayer: (playerId: string) => void
+  setupTeams: (numTeams: number) => void
+  nextTeam: () => void
+  addTeamScore: (teamId: string, points: number) => void
 
   // Flashcard
   flashcardQuestions: Question[]
@@ -140,6 +146,8 @@ export const useAppStore = create<AppState>()(
 
       // Game
       gameRound: null,
+      selectedGameMode: "guess",
+      setGameMode: (mode) => set({ selectedGameMode: mode }),
       startGame: () => {
         const state = get()
         const selectedDatasets = state.datasets.filter((d) =>
@@ -183,6 +191,8 @@ export const useAppStore = create<AppState>()(
             currentPlayerIndex: 0,
             totalQuestions: shuffledQuestions.length,
             remainingQuestions: shuffledQuestions.length,
+            gameMode: state.selectedGameMode,
+            suddenDeathEliminated: [],
           },
         })
       },
@@ -223,12 +233,81 @@ export const useAppStore = create<AppState>()(
       nextPlayer: () =>
         set((state) => {
           if (!state.gameRound) return state
-          const nextIndex =
-            (state.gameRound.currentPlayerIndex + 1) % state.gameRound.players.length
+          // For sudden death, skip eliminated players
+          let nextIndex = (state.gameRound.currentPlayerIndex + 1) % state.gameRound.players.length
+          if (state.gameRound.gameMode === "suddendeath" && state.gameRound.suddenDeathEliminated) {
+            let attempts = 0
+            while (
+              state.gameRound.suddenDeathEliminated.includes(state.gameRound.players[nextIndex].id) &&
+              attempts < state.gameRound.players.length
+            ) {
+              nextIndex = (nextIndex + 1) % state.gameRound.players.length
+              attempts++
+            }
+          }
           return {
             gameRound: {
               ...state.gameRound,
               currentPlayerIndex: nextIndex,
+            },
+          }
+        }),
+      eliminatePlayer: (playerId) =>
+        set((state) => {
+          if (!state.gameRound) return state
+          return {
+            gameRound: {
+              ...state.gameRound,
+              suddenDeathEliminated: [
+                ...(state.gameRound.suddenDeathEliminated || []),
+                playerId,
+              ],
+            },
+          }
+        }),
+      setupTeams: (numTeams) =>
+        set((state) => {
+          if (!state.gameRound) return state
+          const shuffledPlayers = [...state.gameRound.players].sort(() => Math.random() - 0.5)
+          const teams: Team[] = []
+          for (let i = 0; i < numTeams; i++) {
+            teams.push({
+              id: generateId(),
+              name: `Đội ${i + 1}`,
+              players: [],
+              score: 0,
+            })
+          }
+          shuffledPlayers.forEach((player, index) => {
+            teams[index % numTeams].players.push(player)
+          })
+          return {
+            gameRound: {
+              ...state.gameRound,
+              teams,
+              currentTeamIndex: 0,
+            },
+          }
+        }),
+      nextTeam: () =>
+        set((state) => {
+          if (!state.gameRound || !state.gameRound.teams) return state
+          return {
+            gameRound: {
+              ...state.gameRound,
+              currentTeamIndex: ((state.gameRound.currentTeamIndex || 0) + 1) % state.gameRound.teams.length,
+            },
+          }
+        }),
+      addTeamScore: (teamId, points) =>
+        set((state) => {
+          if (!state.gameRound || !state.gameRound.teams) return state
+          return {
+            gameRound: {
+              ...state.gameRound,
+              teams: state.gameRound.teams.map((t) =>
+                t.id === teamId ? { ...t, score: t.score + points } : t
+              ),
             },
           }
         }),
