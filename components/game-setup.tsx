@@ -291,17 +291,19 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                         <div className="flex items-start gap-2">
                           <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="font-medium mb-1">Lỗi API Key</p>
-                            <p className="text-xs opacity-80">{apiKeyError}</p>
+                            <p className="font-medium mb-1">Lỗi kết nối</p>
+                            <p className="text-xs opacity-80 whitespace-pre-line">{apiKeyError}</p>
                           </div>
                         </div>
                       </div>
-                      <Link href="/settings">
-                        <Button variant="outline" className="w-full">
-                          <Settings className="w-4 h-4 mr-2" />
-                          Đi đến Cài đặt
-                        </Button>
-                      </Link>
+                      <Button 
+                        variant="outline" 
+                        className="w-full mb-2"
+                        onClick={() => loadSheetNames()}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Thử lại
+                      </Button>
                     </div>
                   ) : filteredSheetNames.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground text-sm px-4">
