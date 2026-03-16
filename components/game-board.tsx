@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useAppStore } from "@/lib/store"
+import { useGameSounds } from "@/hooks/use-game-sounds"
 import type { Question, GameMode } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -39,6 +40,8 @@ import {
   Swords,
   CircleDot,
   Trash2,
+  Music,
+  VolumeX,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -104,6 +107,10 @@ export function GameBoard() {
   const [canSteal, setCanSteal] = useState(false)
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null)
   const [expandedCell, setExpandedCell] = useState<string | null>(null)
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false)
+
+  // Sound effects
+  const { playCorrect, playWrong, playClick, playGameStart, playTick, startBgMusic, stopBgMusic, toggleBgMusic } = useGameSounds()
 
   const canStartGame = selectedDatasetIds.length > 0 && players.length > 0
 
@@ -113,14 +120,18 @@ export function GameBoard() {
     if (timerActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => prev - 1)
+        if (timeLeft <= 5) {
+          playTick()
+        }
       }, 1000)
     } else if (timeLeft === 0 && timerActive) {
       setTimerActive(false)
       setShowAnswer(true)
+      playWrong()
       toast.error("Hết giờ!")
     }
     return () => clearInterval(interval)
-  }, [timerActive, timeLeft])
+  }, [timerActive, timeLeft, playTick, playWrong])
 
   // Hidden answers reveal effect
   useEffect(() => {
@@ -138,17 +149,27 @@ export function GameBoard() {
       toast.error("Vui lòng chọn bộ dữ liệu và thêm người chơi trước")
       return
     }
+    playGameStart()
     startGame()
     if (selectedGameMode === "teambattle") {
       setupTeams(2)
     }
+    startBgMusic()
+    setIsMusicPlaying(true)
     toast.success("Bắt đầu trò chơi!")
   }
 
   const handlePlayAgain = () => {
     resetAllSelectedPlayed()
+    stopBgMusic()
+    setIsMusicPlaying(false)
     endGame()
     toast.success("Đã reset tất cả câu hỏi. Bắt đầu chơi lại!")
+  }
+
+  const handleToggleMusic = () => {
+    toggleBgMusic()
+    setIsMusicPlaying(!isMusicPlaying)
   }
 
   const resetQuestionState = useCallback(() => {
@@ -170,6 +191,7 @@ export function GameBoard() {
       setExpandedCell(expandedCell === question.id ? null : question.id)
       return
     }
+    playClick()
     resetQuestionState()
     setSelectedQuestion(question)
     
@@ -188,6 +210,7 @@ export function GameBoard() {
 
   const handleMarkCorrect = () => {
     if (!selectedQuestion) return
+    playCorrect()
     markQuestionPlayed(selectedQuestion.id, true)
     
     if (gameRound?.gameMode === "teambattle" && gameRound.teams) {
@@ -204,6 +227,7 @@ export function GameBoard() {
 
   const handleMarkWrong = () => {
     if (!selectedQuestion) return
+    playWrong()
     
     if (gameRound?.gameMode === "suddendeath") {
       const currentPlayer = gameRound.players[gameRound.currentPlayerIndex]
@@ -467,10 +491,18 @@ export function GameBoard() {
             <Trophy className="w-4 h-4 mr-2 text-warning" />
             Bảng điểm
           </Button>
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={handleToggleMusic}
+            title={isMusicPlaying ? "Tắt nhạc" : "Bật nhạc"}
+          >
+            {isMusicPlaying ? <Music className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </Button>
           <Button variant="outline" onClick={handlePlayAgain}>
             Chơi lại
           </Button>
-          <Button variant="destructive" onClick={endGame}>
+          <Button variant="destructive" onClick={() => { stopBgMusic(); endGame(); }}>
             Kết thúc
           </Button>
         </div>

@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
 import {
   BookOpen,
   Languages,
@@ -36,6 +37,7 @@ import {
   FileSpreadsheet,
   RefreshCw,
   Loader2,
+  Search,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -60,6 +62,12 @@ export function DatasetManager() {
   const [isLoadingSheetData, setIsLoadingSheetData] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [spreadsheetInfo, setSpreadsheetInfo] = useState<{ id: string; url: string } | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Filter sheet names by search query
+  const filteredSheetNames = sheetNames.filter(name => 
+    name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   // Load config and sheet names on mount
   useEffect(() => {
@@ -223,6 +231,17 @@ export function DatasetManager() {
             )}
             Tai tat ca
           </Button>
+          
+          {/* Search Input */}
+          <div className="relative mt-3">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Tim kiem sheet..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 h-9 text-sm"
+            />
+          </div>
         </div>
         
         <ScrollArea className="flex-1">
@@ -257,9 +276,14 @@ export function DatasetManager() {
                   <p className="text-xs mt-2 opacity-70">ID: {spreadsheetInfo.id}</p>
                 )}
               </div>
+            ) : filteredSheetNames.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                Khong tim thay "{searchQuery}"
+              </div>
             ) : (
               <div className="space-y-1">
-                {sheetNames.map((name) => {
+                {filteredSheetNames.map((name) => {
                   const isLoaded = datasets.some(d => d.fileName === name)
                   const isActive = selectedSheet === name
                   
