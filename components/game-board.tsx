@@ -54,14 +54,14 @@ const playerColors = [
 ]
 
 const gameModes: { id: GameMode; name: string; icon: React.ReactNode; description: string }[] = [
-  { id: "guess", name: "Guess Mode", icon: <HelpCircle className="w-5 h-5" />, description: "Trả lời miệng, bấm hiện đáp án" },
-  { id: "multiple", name: "Multiple Choice", icon: <CircleDot className="w-5 h-5" />, description: "Chọn 1 trong 4 đáp án" },
-  { id: "elimination", name: "Elimination", icon: <Trash2 className="w-5 h-5" />, description: "Loại bỏ đáp án sai trước" },
-  { id: "speed", name: "Speed Mode", icon: <Timer className="w-5 h-5" />, description: "Đếm ngược 10 giây" },
-  { id: "hidden", name: "Hidden Answers", icon: <EyeOff className="w-5 h-5" />, description: "Hiện đáp án sau vài giây" },
-  { id: "truefalse", name: "True or False", icon: <Target className="w-5 h-5" />, description: "Đúng hay Sai?" },
-  { id: "suddendeath", name: "Sudden Death", icon: <Skull className="w-5 h-5" />, description: "Sai là bị loại!" },
-  { id: "teambattle", name: "Team Battle", icon: <Swords className="w-5 h-5" />, description: "Đội nào thắng?" },
+  { id: "guess", name: "Đoán Đáp Án", icon: <HelpCircle className="w-5 h-5" />, description: "Trả lời miệng, bấm hiện đáp án" },
+  { id: "multiple", name: "Trắc Nghiệm", icon: <CircleDot className="w-5 h-5" />, description: "Chọn 1 trong 4 đáp án" },
+  { id: "elimination", name: "Loại Trừ", icon: <Trash2 className="w-5 h-5" />, description: "Loại bỏ đáp án sai trước" },
+  { id: "speed", name: "Tốc Độ", icon: <Timer className="w-5 h-5" />, description: "Đếm ngược 10 giây" },
+  { id: "hidden", name: "Ẩn Đáp Án", icon: <EyeOff className="w-5 h-5" />, description: "Hiện đáp án sau vài giây" },
+  { id: "truefalse", name: "Đúng Sai", icon: <Target className="w-5 h-5" />, description: "Đúng hay Sai?" },
+  { id: "suddendeath", name: "Sinh Tử", icon: <Skull className="w-5 h-5" />, description: "Sai là bị loại!" },
+  { id: "teambattle", name: "Đối Kháng", icon: <Swords className="w-5 h-5" />, description: "Đội nào thắng?" },
 ]
 
 export function GameBoard() {
@@ -94,6 +94,7 @@ export function GameBoard() {
   const [trueFalseIsCorrect, setTrueFalseIsCorrect] = useState(false)
   const [canSteal, setCanSteal] = useState(false)
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null)
+  const [expandedCell, setExpandedCell] = useState<string | null>(null)
 
   const canStartGame = selectedDatasetIds.length > 0 && players.length > 0
 
@@ -107,7 +108,7 @@ export function GameBoard() {
     } else if (timeLeft === 0 && timerActive) {
       setTimerActive(false)
       setShowAnswer(true)
-      toast.error("Het gio!")
+      toast.error("Hết giờ!")
     }
     return () => clearInterval(interval)
   }, [timerActive, timeLeft])
@@ -125,14 +126,14 @@ export function GameBoard() {
 
   const handleStartGame = () => {
     if (!canStartGame) {
-      toast.error("Vui long chon bo du lieu va them nguoi choi truoc")
+      toast.error("Vui lòng chọn bộ dữ liệu và thêm người chơi trước")
       return
     }
     startGame()
     if (selectedGameMode === "teambattle") {
       setupTeams(2)
     }
-    toast.success("Bat dau tro choi!")
+    toast.success("Bắt đầu trò chơi!")
   }
 
   const resetQuestionState = useCallback(() => {
@@ -149,7 +150,11 @@ export function GameBoard() {
   }, [])
 
   const handleCellClick = (question: Question) => {
-    if (question.played) return
+    if (question.played) {
+      // Toggle expanded view for played cells
+      setExpandedCell(expandedCell === question.id ? null : question.id)
+      return
+    }
     resetQuestionState()
     setSelectedQuestion(question)
     
@@ -179,7 +184,7 @@ export function GameBoard() {
     }
     
     resetQuestionState()
-    toast.success("Chinh xac! +1 diem")
+    toast.success("Chính xác! +1 điểm")
   }
 
   const handleMarkWrong = () => {
@@ -188,18 +193,18 @@ export function GameBoard() {
     if (gameRound?.gameMode === "suddendeath") {
       const currentPlayer = gameRound.players[gameRound.currentPlayerIndex]
       eliminatePlayer(currentPlayer.id)
-      toast.error(`${currentPlayer.name} bi loai!`)
+      toast.error(`${currentPlayer.name} bị loại!`)
       
       // Check if only one player remains
       const remainingPlayers = gameRound.players.filter(
         (p) => !gameRound.suddenDeathEliminated?.includes(p.id) && p.id !== currentPlayer.id
       )
       if (remainingPlayers.length === 1) {
-        toast.success(`${remainingPlayers[0].name} chien thang!`)
+        toast.success(`${remainingPlayers[0].name} chiến thắng!`)
       }
     } else if (gameRound?.gameMode === "teambattle" && !canSteal) {
       setCanSteal(true)
-      toast.info("Doi kia co the cuop diem!")
+      toast.info("Đội kia có thể cướp điểm!")
       return
     }
     
@@ -212,7 +217,7 @@ export function GameBoard() {
     }
     
     resetQuestionState()
-    toast.error("Sai roi!")
+    toast.error("Sai rồi!")
   }
 
   const handleSteal = (correct: boolean) => {
@@ -223,9 +228,9 @@ export function GameBoard() {
     
     if (correct) {
       addTeamScore(otherTeam.id, 1)
-      toast.success(`${otherTeam.name} cuop diem thanh cong!`)
+      toast.success(`${otherTeam.name} cướp điểm thành công!`)
     } else {
-      toast.error(`${otherTeam.name} cuop diem that bai!`)
+      toast.error(`${otherTeam.name} cướp điểm thất bại!`)
     }
     
     markQuestionPlayed(selectedQuestion.id, correct)
@@ -245,7 +250,7 @@ export function GameBoard() {
   const handleEliminateAnswer = (index: number) => {
     if (eliminatedAnswers.length >= 2) return
     if (selectedQuestion?.answers[index] === selectedQuestion?.correct) {
-      toast.error("Khong the loai dap an dung!")
+      toast.error("Không thể loại đáp án đúng!")
       return
     }
     setEliminatedAnswers([...eliminatedAnswers, index])
@@ -293,7 +298,7 @@ export function GameBoard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Gamepad2 className="w-5 h-5 text-primary" />
-              Chuan bi tro choi
+              Chuẩn bị trò chơi
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -301,11 +306,11 @@ export function GameBoard() {
             <div className="p-4 bg-secondary/50 rounded-xl">
               <h4 className="font-bold mb-3 flex items-center gap-2">
                 <HelpCircle className="w-4 h-4 text-primary" />
-                Bo du lieu da chon
+                Bộ dữ liệu đã chọn
               </h4>
               {selectedDatasetIds.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Chua chon bo du lieu. Vao trang Bo du lieu de chon nhe.
+                  Chưa chọn bộ dữ liệu. Vào trang Bộ dữ liệu để chọn nhé.
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -324,11 +329,11 @@ export function GameBoard() {
             <div className="p-4 bg-secondary/50 rounded-xl">
               <h4 className="font-bold mb-3 flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
-                Nguoi choi ({players.length})
+                Người chơi ({players.length})
               </h4>
               {players.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Chua co nguoi choi. Vao trang Nguoi choi de them nhe.
+                  Chưa có người chơi. Vào trang Người chơi để thêm nhé.
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -348,7 +353,7 @@ export function GameBoard() {
             <div className="p-4 bg-secondary/50 rounded-xl">
               <h4 className="font-bold mb-3 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
-                Chon che do choi
+                Chọn chế độ chơi
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {gameModes.map((mode) => (
@@ -385,7 +390,7 @@ export function GameBoard() {
                     .filter((d) => selectedDatasetIds.includes(d.id))
                     .reduce((acc, d) => acc + d.questions.filter((q) => !q.played).length, 0)}
                 </p>
-                <p className="text-sm text-muted-foreground">Tong cau hoi</p>
+                <p className="text-sm text-muted-foreground">Tổng câu hỏi</p>
               </div>
               <div className="p-4 bg-accent/10 rounded-xl text-center">
                 <p className="text-3xl font-bold text-accent">
@@ -398,7 +403,7 @@ export function GameBoard() {
                       )
                     : 0}
                 </p>
-                <p className="text-sm text-muted-foreground">Cau/nguoi</p>
+                <p className="text-sm text-muted-foreground">Câu/người</p>
               </div>
             </div>
 
@@ -409,7 +414,7 @@ export function GameBoard() {
               className="w-full text-lg py-6 bg-gradient-fun hover:opacity-90"
             >
               <Play className="w-6 h-6 mr-2" />
-              Bat dau choi!
+              Bắt đầu chơi!
             </Button>
           </CardContent>
         </Card>
@@ -426,7 +431,7 @@ export function GameBoard() {
             <Star className="w-6 h-6" />
             <div>
               <span className="text-xl font-bold">
-                Luot cua {currentPlayer?.name}
+                Lượt của {currentPlayer?.name}
               </span>
               {gameRound.gameMode === "teambattle" && gameRound.teams && (
                 <p className="text-sm opacity-90">
@@ -441,14 +446,14 @@ export function GameBoard() {
             {gameModes.find((m) => m.id === gameRound.gameMode)?.name}
           </Badge>
           <div className="text-sm text-muted-foreground bg-secondary/50 px-4 py-2 rounded-lg">
-            Con {gameRound.remainingQuestions}/{gameRound.totalQuestions} cau
+            Còn {gameRound.remainingQuestions}/{gameRound.totalQuestions} câu
           </div>
           <Button variant="outline" onClick={() => setShowScoreboard(true)} className="hover:bg-primary/10">
             <Trophy className="w-4 h-4 mr-2 text-warning" />
-            Bang diem
+            Bảng điểm
           </Button>
           <Button variant="destructive" onClick={endGame}>
-            Ket thuc
+            Kết thúc
           </Button>
         </div>
       </div>
@@ -490,7 +495,7 @@ export function GameBoard() {
               )}
             >
               {player.name}
-              {gameRound.suddenDeathEliminated?.includes(player.id) && " (Loai)"}
+              {gameRound.suddenDeathEliminated?.includes(player.id) && " (Loại)"}
             </Badge>
           ))}
         </div>
@@ -503,9 +508,9 @@ export function GameBoard() {
             <div className="w-24 h-24 rounded-2xl bg-gradient-warning flex items-center justify-center mx-auto mb-6 shadow-lg">
               <PartyPopper className="w-12 h-12 text-warning-foreground" />
             </div>
-            <h2 className="text-3xl font-bold mb-2">Hoan thanh!</h2>
+            <h2 className="text-3xl font-bold mb-2">Hoàn thành!</h2>
             <p className="text-xl text-muted-foreground mb-6">
-              Nguoi thang cuoc: <span className="text-primary font-bold">
+              Người thắng cuộc: <span className="text-primary font-bold">
                 {isSuddenDeathComplete 
                   ? suddenDeathWinner?.[0]?.name 
                   : gameRound.gameMode === "teambattle" && gameRound.teams
@@ -516,10 +521,10 @@ export function GameBoard() {
             </p>
             <div className="flex justify-center gap-3">
               <Button onClick={() => setShowScoreboard(true)} size="lg">
-                Xem bang diem
+                Xem bảng điểm
               </Button>
               <Button variant="outline" onClick={endGame} size="lg">
-                Choi lai
+                Chơi lại
               </Button>
             </div>
           </CardContent>
@@ -531,32 +536,82 @@ export function GameBoard() {
           style={{ gridTemplateColumns: `repeat(${boardColumns}, minmax(0, 1fr))` }}
         >
           {allQuestions.map((question, index) => (
-            <button
-              key={question.id}
-              onClick={() => handleCellClick(question)}
-              disabled={question.played}
-              className={cn(
-                "aspect-square rounded-2xl border-2 transition-all flex items-center justify-center text-2xl font-bold shadow-sm",
-                question.played
-                  ? "bg-secondary/50 border-border/50 text-muted-foreground/50 cursor-not-allowed"
-                  : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg hover:scale-105 cursor-pointer"
+            <div key={question.id} className="relative">
+              <button
+                onClick={() => handleCellClick(question)}
+                className={cn(
+                  "w-full aspect-square rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-2 text-center shadow-sm",
+                  question.played
+                    ? "bg-success/10 border-success/30 cursor-pointer hover:bg-success/20"
+                    : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg hover:scale-105 cursor-pointer"
+                )}
+              >
+                {question.played ? (
+                  <div className="flex flex-col items-center gap-1 w-full">
+                    <Check className="w-6 h-6 text-success" />
+                    <span className="text-xs text-muted-foreground truncate w-full px-1">
+                      {question.question.slice(0, 20)}...
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-2xl font-bold bg-gradient-to-br from-primary to-chart-5 bg-clip-text text-transparent">
+                    {index + 1}
+                  </span>
+                )}
+              </button>
+              
+              {/* Expanded Cell Content */}
+              {expandedCell === question.id && question.played && (
+                <div className="absolute top-full left-0 right-0 z-50 mt-2">
+                  <Card className="border-2 border-success/50 shadow-xl">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Badge className={question.type === 1 ? "bg-chart-3" : "bg-chart-4"}>
+                          {question.type === 1 ? "Ngữ pháp" : "Từ vựng"}
+                        </Badge>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={(e) => { e.stopPropagation(); setExpandedCell(null) }}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <p className="font-medium text-sm">{question.question}</p>
+                      <div className="text-sm space-y-1">
+                        {question.answers.map((ans, i) => (
+                          <div 
+                            key={i} 
+                            className={cn(
+                              "p-2 rounded-lg",
+                              ans === question.correct 
+                                ? "bg-success/20 border border-success/50 font-medium" 
+                                : "bg-secondary/50"
+                            )}
+                          >
+                            <span className="font-bold mr-2">{["A", "B", "C", "D"][i]}.</span>
+                            {ans}
+                            {ans === question.correct && <Check className="w-4 h-4 inline ml-2 text-success" />}
+                          </div>
+                        ))}
+                      </div>
+                      {question.explain && (
+                        <div className="p-3 bg-primary/10 rounded-lg text-xs">
+                          <span className="font-bold">Giải thích:</span> {question.explain}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               )}
-            >
-              {question.played ? (
-                <Check className="w-8 h-8 text-success/50" />
-              ) : (
-                <span className="bg-gradient-to-br from-primary to-chart-5 bg-clip-text text-transparent">
-                  {index + 1}
-                </span>
-              )}
-            </button>
+            </div>
           ))}
         </div>
       )}
 
       {/* Question Modal */}
       <Dialog open={!!selectedQuestion} onOpenChange={() => resetQuestionState()}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Badge 
@@ -567,270 +622,300 @@ export function GameBoard() {
                     : "bg-chart-4 text-chart-4-foreground"
                 )}
               >
-                {selectedQuestion?.type === 1 ? "Ngu phap" : "Tu vung"}
+                {selectedQuestion?.type === 1 ? "Ngữ pháp" : "Từ vựng"}
               </Badge>
-              <span>Cau hoi cho {currentPlayer?.name}</span>
-              {gameRound.gameMode === "speed" && timerActive && (
-                <Badge variant="destructive" className="ml-auto">
-                  <Timer className="w-4 h-4 mr-1" />
-                  {timeLeft}s
-                </Badge>
-              )}
+              <span>Câu hỏi cho {currentPlayer?.name}</span>
             </DialogTitle>
             <DialogDescription className="sr-only">
-              Tra loi cau hoi de ghi diem
+              Trả lời câu hỏi để ghi điểm
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-6 space-y-6">
-            {/* Timer Progress for Speed Mode */}
-            {gameRound.gameMode === "speed" && timerActive && (
-              <Progress value={(timeLeft / 10) * 100} className="h-2" />
-            )}
-
-            {/* Question */}
-            <div className="text-center p-6 bg-secondary/50 rounded-xl">
-              <p className="text-xl font-medium">{selectedQuestion?.question}</p>
-            </div>
-
-            {/* True/False Mode */}
-            {gameRound.gameMode === "truefalse" && trueFalseAnswer && (
-              <div className="space-y-4">
-                <div className="text-center p-6 bg-primary/10 rounded-xl border-2 border-primary">
-                  <p className="text-lg font-bold">{trueFalseAnswer}</p>
-                  <p className="text-sm text-muted-foreground mt-2">Day co phai la dap an dung?</p>
-                </div>
-                {!showAnswer ? (
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => handleTrueFalseAnswer(true)}
-                      className="flex-1 bg-success hover:bg-success/90 text-lg py-5"
-                    >
-                      <ThumbsUp className="w-5 h-5 mr-2" />
-                      Dung
-                    </Button>
-                    <Button
-                      onClick={() => handleTrueFalseAnswer(false)}
-                      variant="destructive"
-                      className="flex-1 text-lg py-5"
-                    >
-                      <ThumbsDown className="w-5 h-5 mr-2" />
-                      Sai
-                    </Button>
-                  </div>
-                ) : (
-                  <div className={cn(
-                    "p-4 rounded-xl text-center",
-                    trueFalseIsCorrect ? "bg-success/20" : "bg-destructive/20"
-                  )}>
-                    <p className="font-bold">
-                      Dap an nay {trueFalseIsCorrect ? "DUNG" : "SAI"}!
-                    </p>
-                    <p className="text-sm mt-1">Dap an dung: {selectedQuestion?.correct}</p>
-                  </div>
-                )}
+          {/* Speed Mode Timer */}
+          {gameRound?.gameMode === "speed" && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Timer className="w-4 h-4 text-primary" />
+                  Thời gian còn lại
+                </span>
+                <span className={cn(
+                  "text-2xl font-bold",
+                  timeLeft <= 3 ? "text-destructive animate-pulse" : "text-primary"
+                )}>
+                  {timeLeft}s
+                </span>
               </div>
-            )}
+              <Progress value={(timeLeft / 10) * 100} className="h-3" />
+            </div>
+          )}
 
-            {/* Regular Answers (not True/False) */}
-            {gameRound.gameMode !== "truefalse" && (
-              <>
-                {/* Answers - Hidden initially for Hidden Mode */}
-                {(gameRound.gameMode !== "hidden" || hiddenAnswersRevealed) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {selectedQuestion?.answers.map((answer, index) => {
-                      const isCorrect = showAnswer && answer === selectedQuestion.correct
-                      const isWrong = showAnswer && answer !== selectedQuestion.correct
-                      const isEliminated = eliminatedAnswers.includes(index)
-                      const isSelected = selectedAnswerIndex === index
-                      
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            if (gameRound.gameMode === "elimination" && !showAnswer) {
-                              handleEliminateAnswer(index)
-                            } else if (gameRound.gameMode === "multiple" && !showAnswer) {
-                              handleMultipleChoiceSelect(index)
-                            }
-                          }}
-                          disabled={isEliminated || (gameRound.gameMode === "multiple" && showAnswer)}
-                          className={cn(
-                            "p-4 rounded-xl border-2 transition-all text-left",
-                            isEliminated && "opacity-30 line-through",
-                            isCorrect && "border-success bg-success/10",
-                            isWrong && showAnswer && "border-border/50 opacity-50",
-                            isSelected && !isCorrect && "border-destructive bg-destructive/10",
-                            !showAnswer && !isEliminated && "border-border hover:border-primary/50 cursor-pointer",
-                            gameRound.gameMode === "elimination" && !showAnswer && !isEliminated && "hover:border-destructive hover:bg-destructive/5"
-                          )}
-                        >
-                          <span className={cn(
-                            "inline-flex items-center justify-center w-8 h-8 rounded-lg mr-2 text-sm font-bold",
-                            isCorrect ? "bg-success text-success-foreground" : "bg-secondary"
-                          )}>
-                            {["A", "B", "C", "D"][index]}
-                          </span>
-                          {answer}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Hidden Mode - Waiting */}
-                {gameRound.gameMode === "hidden" && !hiddenAnswersRevealed && (
-                  <div className="text-center p-8 bg-secondary/50 rounded-xl">
-                    <EyeOff className="w-12 h-12 mx-auto mb-3 text-muted-foreground animate-pulse" />
-                    <p className="text-lg font-medium">Dap an se hien sau 3 giay...</p>
-                  </div>
-                )}
-
-                {/* Elimination Mode Instructions */}
-                {gameRound.gameMode === "elimination" && !showAnswer && eliminatedAnswers.length < 2 && (
-                  <p className="text-center text-sm text-muted-foreground">
-                    Click vao {2 - eliminatedAnswers.length} dap an sai de loai bo
-                  </p>
-                )}
-
-                {/* Show Answer Button */}
-                {!showAnswer && gameRound.gameMode !== "multiple" && (gameRound.gameMode !== "elimination" || eliminatedAnswers.length >= 2) && (gameRound.gameMode !== "hidden" || hiddenAnswersRevealed) && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowAnswer(true)
-                      setTimerActive(false)
-                    }}
-                    className="w-full text-lg py-5"
-                  >
-                    <Eye className="w-5 h-5 mr-2" />
-                    Hien dap an
-                  </Button>
-                )}
-
-                {/* Explanation */}
-                {showAnswer && selectedQuestion?.explain && (
-                  <div className="p-4 bg-primary/10 rounded-xl border border-primary/20">
-                    <p className="text-sm font-bold mb-1 text-primary">Giai thich:</p>
-                    <p className="text-sm">{selectedQuestion.explain}</p>
-                  </div>
-                )}
-
-                {/* Team Battle Steal Option */}
-                {canSteal && gameRound.teams && (
-                  <div className="p-4 bg-warning/20 rounded-xl border border-warning">
-                    <p className="text-center font-bold mb-3">
-                      {gameRound.teams[((gameRound.currentTeamIndex || 0) + 1) % gameRound.teams.length]?.name} co the cuop diem!
-                    </p>
-                    <div className="flex gap-3">
-                      <Button onClick={() => handleSteal(true)} className="flex-1 bg-success">
-                        <Check className="w-4 h-4 mr-2" />
-                        Cuop dung
-                      </Button>
-                      <Button onClick={() => handleSteal(false)} variant="destructive" className="flex-1">
-                        <X className="w-4 h-4 mr-2" />
-                        Cuop sai
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                {showAnswer && !canSteal && (
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={handleMarkCorrect}
-                      className="flex-1 bg-gradient-success hover:opacity-90 text-lg py-5"
-                    >
-                      <Check className="w-5 h-5 mr-2" />
-                      Dung (+1)
-                    </Button>
-                    <Button
-                      onClick={handleMarkWrong}
-                      variant="destructive"
-                      className="flex-1 text-lg py-5"
-                    >
-                      <X className="w-5 h-5 mr-2" />
-                      Sai
-                    </Button>
-                    <Button onClick={handleSkip} variant="outline" className="py-5">
-                      <SkipForward className="w-5 h-5 mr-2" />
-                      Bo qua
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
+          {/* Question */}
+          <div className="p-6 bg-secondary/30 rounded-xl text-center">
+            <p className="text-xl md:text-2xl font-medium leading-relaxed">
+              {selectedQuestion?.question}
+            </p>
           </div>
+
+          {/* True/False Mode */}
+          {gameRound?.gameMode === "truefalse" && (
+            <div className="space-y-4">
+              <div className="p-4 bg-primary/10 rounded-xl text-center">
+                <p className="text-sm text-muted-foreground mb-2">Đáp án được đưa ra:</p>
+                <p className="text-xl font-bold">{trueFalseAnswer}</p>
+              </div>
+              {!showAnswer ? (
+                <div className="flex gap-4">
+                  <Button
+                    className="flex-1 bg-success hover:bg-success/90"
+                    size="lg"
+                    onClick={() => handleTrueFalseAnswer(true)}
+                  >
+                    <ThumbsUp className="w-5 h-5 mr-2" />
+                    Đúng
+                  </Button>
+                  <Button
+                    className="flex-1 bg-destructive hover:bg-destructive/90"
+                    size="lg"
+                    onClick={() => handleTrueFalseAnswer(false)}
+                  >
+                    <ThumbsDown className="w-5 h-5 mr-2" />
+                    Sai
+                  </Button>
+                </div>
+              ) : (
+                <div className={cn(
+                  "p-4 rounded-xl text-center text-lg font-bold",
+                  trueFalseIsCorrect ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
+                )}>
+                  {trueFalseIsCorrect ? "Đáp án ĐÚNG!" : "Đáp án SAI!"}
+                  <p className="text-sm font-normal mt-2">
+                    Đáp án đúng: {selectedQuestion?.correct}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Answers for other modes */}
+          {gameRound?.gameMode !== "truefalse" && (
+            <div className="space-y-3">
+              {selectedQuestion?.answers.map((answer, index) => {
+                const isCorrect = answer === selectedQuestion.correct
+                const isEliminated = eliminatedAnswers.includes(index)
+                const isSelected = selectedAnswerIndex === index
+                const showAsCorrect = showAnswer && isCorrect
+                const showAsWrong = showAnswer && isSelected && !isCorrect
+
+                // Hidden mode: don't show answers initially
+                if (gameRound?.gameMode === "hidden" && !hiddenAnswersRevealed && !showAnswer) {
+                  return (
+                    <div
+                      key={index}
+                      className="p-4 rounded-xl border-2 border-border/50 bg-secondary/30 animate-pulse"
+                    >
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-secondary mr-3 text-sm font-bold">
+                        {["A", "B", "C", "D"][index]}
+                      </span>
+                      <span className="text-muted-foreground">Đang ẩn...</span>
+                    </div>
+                  )
+                }
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (gameRound?.gameMode === "elimination" && !showAnswer) {
+                        handleEliminateAnswer(index)
+                      } else if (gameRound?.gameMode === "multiple" || gameRound?.gameMode === "hidden") {
+                        handleMultipleChoiceSelect(index)
+                      }
+                    }}
+                    disabled={
+                      showAnswer || 
+                      isEliminated ||
+                      (gameRound?.gameMode === "guess")
+                    }
+                    className={cn(
+                      "w-full p-4 rounded-xl border-2 transition-all text-left",
+                      isEliminated && "opacity-30 line-through",
+                      showAsCorrect && "border-success bg-success/20",
+                      showAsWrong && "border-destructive bg-destructive/20",
+                      !showAnswer && !isEliminated && gameRound?.gameMode !== "guess" && "hover:border-primary hover:bg-primary/5 cursor-pointer",
+                      !showAnswer && !isEliminated && "border-border/50"
+                    )}
+                  >
+                    <span className={cn(
+                      "inline-flex items-center justify-center w-8 h-8 rounded-lg mr-3 text-sm font-bold",
+                      showAsCorrect ? "bg-success text-success-foreground" : 
+                      showAsWrong ? "bg-destructive text-destructive-foreground" : "bg-secondary"
+                    )}>
+                      {["A", "B", "C", "D"][index]}
+                    </span>
+                    <span className={cn(showAsCorrect && "font-medium")}>
+                      {answer}
+                    </span>
+                    {showAsCorrect && <Check className="w-5 h-5 inline ml-2 text-success" />}
+                    {showAsWrong && <X className="w-5 h-5 inline ml-2 text-destructive" />}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Elimination Mode Info */}
+          {gameRound?.gameMode === "elimination" && !showAnswer && (
+            <p className="text-center text-sm text-muted-foreground">
+              Nhấn vào đáp án sai để loại bỏ ({2 - eliminatedAnswers.length} lần còn lại)
+            </p>
+          )}
+
+          {/* Explanation */}
+          {showAnswer && selectedQuestion?.explain && (
+            <div className="p-4 bg-primary/10 rounded-xl border border-primary/20">
+              <p className="text-sm font-bold mb-1 text-primary">Giải thích:</p>
+              <p className="text-sm">{selectedQuestion.explain}</p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          {gameRound?.gameMode !== "truefalse" && (
+            <div className="flex flex-wrap gap-3">
+              {/* Guess Mode - Show reveal button */}
+              {gameRound?.gameMode === "guess" && !showAnswer && (
+                <Button
+                  onClick={() => setShowAnswer(true)}
+                  className="flex-1 bg-gradient-fun hover:opacity-90"
+                  size="lg"
+                >
+                  <Eye className="w-5 h-5 mr-2" />
+                  Hiện đáp án
+                </Button>
+              )}
+
+              {/* Team Battle - Steal buttons */}
+              {canSteal && gameRound?.teams && (
+                <>
+                  <Button
+                    onClick={() => handleSteal(true)}
+                    className="flex-1 bg-success hover:bg-success/90"
+                    size="lg"
+                  >
+                    <Check className="w-5 h-5 mr-2" />
+                    {gameRound.teams[((gameRound.currentTeamIndex || 0) + 1) % gameRound.teams.length]?.name} cướp đúng
+                  </Button>
+                  <Button
+                    onClick={() => handleSteal(false)}
+                    variant="destructive"
+                    className="flex-1"
+                    size="lg"
+                  >
+                    <X className="w-5 h-5 mr-2" />
+                    Cướp sai
+                  </Button>
+                </>
+              )}
+
+              {/* Correct/Wrong buttons after answer revealed */}
+              {showAnswer && !canSteal && (
+                <>
+                  {gameRound?.gameMode === "guess" && (
+                    <>
+                      <Button
+                        onClick={handleMarkCorrect}
+                        className="flex-1 bg-success hover:bg-success/90"
+                        size="lg"
+                      >
+                        <Check className="w-5 h-5 mr-2" />
+                        Đúng
+                      </Button>
+                      <Button
+                        onClick={handleMarkWrong}
+                        variant="destructive"
+                        className="flex-1"
+                        size="lg"
+                      >
+                        <X className="w-5 h-5 mr-2" />
+                        Sai
+                      </Button>
+                    </>
+                  )}
+                  {(gameRound?.gameMode === "multiple" || gameRound?.gameMode === "elimination" || gameRound?.gameMode === "hidden" || gameRound?.gameMode === "speed") && (
+                    <Button
+                      onClick={() => {
+                        const isCorrect = selectedAnswerIndex !== null && 
+                          selectedQuestion?.answers[selectedAnswerIndex] === selectedQuestion?.correct
+                        if (isCorrect) {
+                          handleMarkCorrect()
+                        } else {
+                          handleMarkWrong()
+                        }
+                      }}
+                      className="flex-1"
+                      size="lg"
+                    >
+                      <SkipForward className="w-5 h-5 mr-2" />
+                      Tiếp tục
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {/* Skip button */}
+              {!showAnswer && gameRound?.gameMode !== "guess" && (
+                <Button
+                  onClick={handleSkip}
+                  variant="outline"
+                  size="lg"
+                >
+                  <SkipForward className="w-5 h-5 mr-2" />
+                  Bỏ qua
+                </Button>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* Scoreboard Modal */}
+      {/* Scoreboard Dialog */}
       <Dialog open={showScoreboard} onOpenChange={setShowScoreboard}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-warning" />
-              Bang diem
+              Bảng điểm
             </DialogTitle>
             <DialogDescription className="sr-only">
-              Xem diem so cua tat ca nguoi choi
+              Xem điểm số của tất cả người chơi
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-3">
-            {/* Team Scores */}
-            {gameRound.gameMode === "teambattle" && gameRound.teams && (
-              <div className="mb-4 space-y-2">
-                <h4 className="font-bold text-sm text-muted-foreground">DOI</h4>
-                {[...gameRound.teams].sort((a, b) => b.score - a.score).map((team, index) => (
-                  <div
-                    key={team.id}
-                    className={cn(
-                      "flex items-center justify-between p-3 rounded-xl",
-                      index === 0 && "bg-warning/20 border border-warning"
-                    )}
-                  >
-                    <span className="font-bold">{team.name}</span>
-                    <span className="text-xl font-bold">{team.score}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* Player Scores */}
-            <h4 className="font-bold text-sm text-muted-foreground">CA NHAN</h4>
             {sortedPlayers.map((player, index) => (
               <div
                 key={player.id}
                 className={cn(
-                  "flex items-center justify-between p-4 rounded-xl transition-all",
-                  index === 0 && gameRound.gameMode !== "teambattle" && "bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 border-2 border-warning",
-                  gameRound.suddenDeathEliminated?.includes(player.id) && "opacity-50 line-through"
+                  "flex items-center justify-between p-4 rounded-xl",
+                  index === 0 && "bg-gradient-warning"
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-md",
-                      index === 0 && gameRound.gameMode !== "teambattle"
-                        ? "bg-gradient-to-br from-amber-400 to-yellow-500 text-amber-950"
-                        : index === 1
-                        ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800"
-                        : index === 2
-                        ? "bg-gradient-to-br from-amber-600 to-orange-600 text-amber-950"
-                        : "bg-secondary text-secondary-foreground"
-                    )}
-                  >
-                    {index === 0 && gameRound.gameMode !== "teambattle" ? <Crown className="w-5 h-5" /> : index + 1}
+                  <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center font-bold",
+                    index === 0 ? "bg-warning-foreground/20" : "bg-secondary"
+                  )}>
+                    {index === 0 ? <Crown className="w-5 h-5" /> : index + 1}
                   </div>
-                  <span className="font-bold text-lg">{player.name}</span>
+                  <span className={cn("font-medium", index === 0 && "font-bold")}>
+                    {player.name}
+                  </span>
                 </div>
-                <div className="text-right">
-                  <div className="font-bold text-2xl">{player.score}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {player.correctCount} dung / {player.wrongCount} sai
-                  </div>
-                </div>
+                <span className={cn(
+                  "text-2xl font-bold",
+                  index === 0 ? "text-warning-foreground" : "text-primary"
+                )}>
+                  {player.score}
+                </span>
               </div>
             ))}
           </div>

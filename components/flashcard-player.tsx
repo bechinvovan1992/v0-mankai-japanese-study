@@ -28,10 +28,12 @@ import {
   AlertCircle,
   Trash2,
   Settings2,
+  CircleDot,
+  ClipboardList,
 } from "lucide-react"
 import { toast } from "sonner"
 
-type FlashcardMode = "flip" | "guess"
+type FlashcardMode = "flip" | "guess" | "quiz"
 
 export function FlashcardPlayer() {
   const {
@@ -63,6 +65,11 @@ export function FlashcardPlayer() {
   const [backTime, setBackTime] = useState(settings.autoPlayBackTime)
   const [showAnswer, setShowAnswer] = useState(false) // For guess mode
   const [isShuffleMode, setIsShuffleMode] = useState(false)
+  
+  // Quiz mode states
+  const [selectedQuizAnswer, setSelectedQuizAnswer] = useState<number | null>(null)
+  const [quizAnswered, setQuizAnswered] = useState(false)
+  const [quizScore, setQuizScore] = useState({ correct: 0, wrong: 0 })
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const progressRef = useRef<NodeJS.Timeout | null>(null)
@@ -79,6 +86,8 @@ export function FlashcardPlayer() {
   useEffect(() => {
     setIsFlipped(false)
     setShowAnswer(false)
+    setSelectedQuizAnswer(null)
+    setQuizAnswered(false)
   }, [currentFlashcardIndex])
 
   const stopAutoPlay = useCallback(() => {
@@ -90,7 +99,7 @@ export function FlashcardPlayer() {
 
   const startAutoPlay = useCallback(() => {
     if (flashcardQuestions.length === 0) {
-      toast.error("Khong co the de phat")
+      toast.error("Không có thẻ để phát")
       return
     }
     setIsAutoPlaying(true)
@@ -127,7 +136,7 @@ export function FlashcardPlayer() {
           setShowAnswer(false)
         } else {
           stopAutoPlay()
-          toast.success("Da on tap xong tat ca the!")
+          toast.success("Đã ôn tập xong tất cả thẻ!")
         }
       }
       setProgress(0)
@@ -156,7 +165,7 @@ export function FlashcardPlayer() {
     setIsFlipped(false)
     setShowAnswer(false)
     setIsShuffleMode(true)
-    toast.success("Da xao tron the!")
+    toast.success("Đã xáo trộn thẻ!")
   }
 
   const handlePrev = () => {
@@ -174,14 +183,14 @@ export function FlashcardPlayer() {
   const handleMarkWrong = () => {
     if (currentCard) {
       markFlashcardWrong(currentCard.id)
-      toast.info("Da danh dau la cau sai")
+      toast.info("Đã đánh dấu là câu sai")
     }
   }
 
   const handleMarkCorrect = () => {
     if (currentCard) {
       markFlashcardCorrect(currentCard.id)
-      toast.success("Da bo danh dau cau sai")
+      toast.success("Đã bỏ đánh dấu câu sai")
     }
   }
 
@@ -190,7 +199,39 @@ export function FlashcardPlayer() {
     if (flashcardFilter === "wrong") {
       loadFlashcards()
     }
-    toast.success("Da xoa tat ca cau sai")
+    toast.success("Đã xóa tất cả câu sai")
+  }
+
+  // Quiz mode handlers
+  const handleQuizAnswer = (index: number) => {
+    if (quizAnswered || !currentCard) return
+    setSelectedQuizAnswer(index)
+    setQuizAnswered(true)
+    
+    const isCorrect = currentCard.answers[index] === currentCard.correct
+    if (isCorrect) {
+      setQuizScore(prev => ({ ...prev, correct: prev.correct + 1 }))
+      toast.success("Chính xác!")
+    } else {
+      setQuizScore(prev => ({ ...prev, wrong: prev.wrong + 1 }))
+      markFlashcardWrong(currentCard.id)
+      toast.error("Sai rồi!")
+    }
+  }
+
+  const handleQuizNext = () => {
+    if (currentFlashcardIndex < flashcardQuestions.length - 1) {
+      nextFlashcard()
+    } else {
+      toast.success(`Hoàn thành! Điểm: ${quizScore.correct}/${quizScore.correct + quizScore.wrong}`)
+    }
+  }
+
+  const resetQuiz = () => {
+    setQuizScore({ correct: 0, wrong: 0 })
+    setFlashcardIndex(0)
+    setSelectedQuizAnswer(null)
+    setQuizAnswered(false)
   }
 
   const selectedCount = datasets
@@ -204,12 +245,12 @@ export function FlashcardPlayer() {
           <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
             <BookOpen className="w-10 h-10 text-muted-foreground" />
           </div>
-          <h3 className="text-xl font-bold mb-2">Chua chon bo du lieu</h3>
+          <h3 className="text-xl font-bold mb-2">Chưa chọn bộ dữ liệu</h3>
           <p className="text-muted-foreground mb-6">
-            Vao trang Bo du lieu de chon bo du lieu cho flashcard nhe.
+            Vào trang Bộ dữ liệu để chọn bộ dữ liệu cho flashcard nhé.
           </p>
           <Button asChild className="bg-gradient-fun hover:opacity-90">
-            <a href="/datasets">Chon bo du lieu</a>
+            <a href="/datasets">Chọn bộ dữ liệu</a>
           </Button>
         </CardContent>
       </Card>
@@ -224,16 +265,20 @@ export function FlashcardPlayer() {
           <div className="space-y-4">
             {/* Study Mode */}
             <div>
-              <Label className="text-xs text-muted-foreground mb-2 block">Che do hoc</Label>
-              <Tabs value={flashcardMode} onValueChange={(v) => setFlashcardMode(v as FlashcardMode)} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+              <Label className="text-xs text-muted-foreground mb-2 block">Chế độ học</Label>
+              <Tabs value={flashcardMode} onValueChange={(v) => { setFlashcardMode(v as FlashcardMode); resetQuiz() }} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="flip" className="flex items-center gap-2">
                     <RotateCw className="w-4 h-4" />
-                    Lat the
+                    Lật thẻ
                   </TabsTrigger>
                   <TabsTrigger value="guess" className="flex items-center gap-2">
                     <Eye className="w-4 h-4" />
-                    Doan dap an
+                    Đoán đáp án
+                  </TabsTrigger>
+                  <TabsTrigger value="quiz" className="flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4" />
+                    Trắc nghiệm
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -241,7 +286,7 @@ export function FlashcardPlayer() {
 
             {/* Filter Selection */}
             <div className="flex flex-wrap items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Loc:</Label>
+              <Label className="text-xs text-muted-foreground">Lọc:</Label>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant={flashcardFilter === "all" ? "default" : "outline"}
@@ -249,7 +294,7 @@ export function FlashcardPlayer() {
                   onClick={() => setFlashcardFilter("all")}
                   className={flashcardFilter === "all" ? "bg-primary" : ""}
                 >
-                  Tat ca
+                  Tất cả
                 </Button>
                 <Button
                   variant={flashcardFilter === "grammar" ? "default" : "outline"}
@@ -257,7 +302,7 @@ export function FlashcardPlayer() {
                   onClick={() => setFlashcardFilter("grammar")}
                   className={flashcardFilter === "grammar" ? "bg-chart-3" : ""}
                 >
-                  Ngu phap
+                  Ngữ pháp
                 </Button>
                 <Button
                   variant={flashcardFilter === "vocabulary" ? "default" : "outline"}
@@ -265,7 +310,7 @@ export function FlashcardPlayer() {
                   onClick={() => setFlashcardFilter("vocabulary")}
                   className={flashcardFilter === "vocabulary" ? "bg-chart-4" : ""}
                 >
-                  Tu vung
+                  Từ vựng
                 </Button>
                 <Button
                   variant={flashcardFilter === "wrong" ? "default" : "outline"}
@@ -277,7 +322,7 @@ export function FlashcardPlayer() {
                   )}
                 >
                   <AlertCircle className="w-3 h-3" />
-                  Cau sai ({wrongAnswerIds.length})
+                  Câu sai ({wrongAnswerIds.length})
                 </Button>
               </div>
             </div>
@@ -285,23 +330,25 @@ export function FlashcardPlayer() {
             {/* Actions Row */}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-sm text-muted-foreground bg-secondary/50 px-3 py-2 rounded-lg">
-                {flashcardQuestions.length} the tu {selectedDatasetIds.length} bo
+                {flashcardQuestions.length} thẻ từ {selectedDatasetIds.length} bộ
               </div>
 
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleShuffle} className="hover:bg-primary/10">
                   <Shuffle className="w-4 h-4 mr-1" />
-                  Xao tron
+                  Xáo trộn
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSettings(!showSettings)}
-                  className={showSettings ? "bg-primary/10" : ""}
-                >
-                  <Settings2 className="w-4 h-4 mr-1" />
-                  Tu dong
-                </Button>
+                {flashcardMode !== "quiz" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSettings(!showSettings)}
+                    className={showSettings ? "bg-primary/10" : ""}
+                  >
+                    <Settings2 className="w-4 h-4 mr-1" />
+                    Tự động
+                  </Button>
+                )}
                 {wrongAnswerIds.length > 0 && (
                   <Button
                     variant="outline"
@@ -310,22 +357,22 @@ export function FlashcardPlayer() {
                     className="text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
-                    Xoa cau sai
+                    Xóa câu sai
                   </Button>
                 )}
               </div>
             </div>
 
             {/* Auto Play Settings */}
-            {showSettings && (
+            {showSettings && flashcardMode !== "quiz" && (
               <div className="p-4 bg-secondary/50 rounded-xl space-y-4 border border-border/50">
                 <div className="flex items-center gap-2 mb-2">
                   <Timer className="w-5 h-5 text-primary" />
-                  <span className="font-medium">Cai dat tu dong phat</span>
+                  <span className="font-medium">Cài đặt tự động phát</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium">Hien cau hoi: {frontTime}s</Label>
+                    <Label className="text-sm font-medium">Hiện câu hỏi: {frontTime}s</Label>
                     <Slider
                       value={[frontTime]}
                       onValueChange={([v]) => setFrontTime(v)}
@@ -336,7 +383,7 @@ export function FlashcardPlayer() {
                     />
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Hien dap an: {backTime}s</Label>
+                    <Label className="text-sm font-medium">Hiện đáp án: {backTime}s</Label>
                     <Slider
                       value={[backTime]}
                       onValueChange={([v]) => setBackTime(v)}
@@ -351,15 +398,34 @@ export function FlashcardPlayer() {
                   {isAutoPlaying ? (
                     <Button onClick={stopAutoPlay} variant="destructive">
                       <Pause className="w-4 h-4 mr-2" />
-                      Dung
+                      Dừng
                     </Button>
                   ) : (
                     <Button onClick={startAutoPlay} className="bg-gradient-fun hover:opacity-90">
                       <Play className="w-4 h-4 mr-2" />
-                      Bat dau tu dong
+                      Bắt đầu tự động
                     </Button>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Quiz Score */}
+            {flashcardMode === "quiz" && (
+              <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-success" />
+                    <span className="font-bold text-success">{quizScore.correct}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <X className="w-4 h-4 text-destructive" />
+                    <span className="font-bold text-destructive">{quizScore.wrong}</span>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={resetQuiz}>
+                  Làm lại
+                </Button>
               </div>
             )}
           </div>
@@ -377,12 +443,12 @@ export function FlashcardPlayer() {
           {/* Card Counter */}
           <div className="flex items-center gap-4">
             <div className="text-sm text-muted-foreground bg-secondary/50 px-4 py-2 rounded-lg">
-              The {currentFlashcardIndex + 1} / {flashcardQuestions.length}
+              Thẻ {currentFlashcardIndex + 1} / {flashcardQuestions.length}
             </div>
             {isWrongCard && (
               <Badge variant="destructive" className="flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" />
-                Da danh dau sai
+                Đã đánh dấu sai
               </Badge>
             )}
           </div>
@@ -407,11 +473,11 @@ export function FlashcardPlayer() {
                               : "bg-chart-4 text-chart-4-foreground"
                           )}
                         >
-                          {currentCard.type === 1 ? "Ngu phap" : "Tu vung"}
+                          {currentCard.type === 1 ? "Ngữ pháp" : "Từ vựng"}
                         </Badge>
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
                           <RotateCw className="w-4 h-4" />
-                          Nhan de lat
+                          Nhấn để lật
                         </span>
                       </div>
                     </CardHeader>
@@ -430,11 +496,11 @@ export function FlashcardPlayer() {
                       <div className="flex items-center justify-between">
                         <Badge className="bg-success text-success-foreground py-1">
                           <Sparkles className="w-3 h-3 mr-1" />
-                          Dap an
+                          Đáp án
                         </Badge>
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
                           <RotateCw className="w-4 h-4" />
-                          Nhan de lat
+                          Nhấn để lật
                         </span>
                       </div>
                     </CardHeader>
@@ -475,7 +541,7 @@ export function FlashcardPlayer() {
                       {/* Explanation */}
                       {currentCard.explain && (
                         <div className="p-4 bg-primary/10 rounded-xl border border-primary/20">
-                          <p className="text-sm font-bold mb-1 text-primary">Giai thich:</p>
+                          <p className="text-sm font-bold mb-1 text-primary">Giải thích:</p>
                           <p className="text-sm">{currentCard.explain}</p>
                         </div>
                       )}
@@ -499,12 +565,12 @@ export function FlashcardPlayer() {
                         : "bg-chart-4 text-chart-4-foreground"
                     )}
                   >
-                    {currentCard.type === 1 ? "Ngu phap" : "Tu vung"}
+                    {currentCard.type === 1 ? "Ngữ pháp" : "Từ vựng"}
                   </Badge>
                   {!showAnswer && (
                     <Button size="sm" variant="outline" onClick={handleRevealAnswer} className="flex items-center gap-1">
                       <Eye className="w-4 h-4" />
-                      Xem dap an
+                      Xem đáp án
                     </Button>
                   )}
                 </div>
@@ -530,7 +596,7 @@ export function FlashcardPlayer() {
                             ? isCorrect
                               ? "border-success bg-success/10"
                               : "border-border/50"
-                            : "border-border/30 bg-muted/30"
+                            : "border-border/50 bg-secondary/30"
                         )}
                       >
                         <span className={cn(
@@ -539,21 +605,20 @@ export function FlashcardPlayer() {
                         )}>
                           {["A", "B", "C", "D"][index]}
                         </span>
-                        <span className={cn(
-                          showAnswer ? "" : "blur-sm select-none",
-                          showAnswer && isCorrect ? "font-medium" : ""
-                        )}>
-                          {answer}
-                        </span>
+                        {showAnswer ? (
+                          <span className={isCorrect ? "font-medium" : ""}>{answer}</span>
+                        ) : (
+                          <span className="text-muted-foreground">• • • • •</span>
+                        )}
                       </div>
                     )
                   })}
                 </div>
 
-                {/* Explanation - only show when answer revealed */}
+                {/* Explanation */}
                 {showAnswer && currentCard.explain && (
-                  <div className="p-4 bg-primary/10 rounded-xl border border-primary/20 animate-in fade-in slide-in-from-bottom-2">
-                    <p className="text-sm font-bold mb-1 text-primary">Giai thich:</p>
+                  <div className="p-4 bg-primary/10 rounded-xl border border-primary/20">
+                    <p className="text-sm font-bold mb-1 text-primary">Giải thích:</p>
                     <p className="text-sm">{currentCard.explain}</p>
                   </div>
                 )}
@@ -561,84 +626,163 @@ export function FlashcardPlayer() {
             </Card>
           )}
 
-          {/* Mark Wrong/Correct Buttons */}
-          <div className="flex items-center gap-2">
-            {isWrongCard ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleMarkCorrect}
-                className="text-success hover:bg-success/10"
-              >
-                <Check className="w-4 h-4 mr-1" />
-                Bo danh dau sai
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleMarkWrong}
-                className="text-destructive hover:bg-destructive/10"
-              >
-                <X className="w-4 h-4 mr-1" />
-                Danh dau sai
-              </Button>
-            )}
-          </div>
-
-          {/* Navigation */}
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handlePrev}
-              disabled={isAutoPlaying || currentFlashcardIndex === 0}
-              className="hover:bg-primary/10"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </Button>
-
-            <div className="flex gap-1.5">
-              {flashcardQuestions.slice(
-                Math.max(0, currentFlashcardIndex - 2),
-                Math.min(flashcardQuestions.length, currentFlashcardIndex + 3)
-              ).map((_, i) => {
-                const actualIndex = Math.max(0, currentFlashcardIndex - 2) + i
-                return (
-                  <button
-                    key={actualIndex}
-                    onClick={() => !isAutoPlaying && setFlashcardIndex(actualIndex)}
-                    disabled={isAutoPlaying}
+          {/* Quiz Mode Card */}
+          {flashcardMode === "quiz" && (
+            <Card className="w-full max-w-2xl border-2 border-primary/20">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <Badge 
                     className={cn(
-                      "w-2.5 h-2.5 rounded-full transition-all",
-                      actualIndex === currentFlashcardIndex
-                        ? "bg-primary w-8"
-                        : "bg-muted hover:bg-muted-foreground/50"
+                      "py-1",
+                      currentCard.type === 1 
+                        ? "bg-chart-3 text-chart-3-foreground" 
+                        : "bg-chart-4 text-chart-4-foreground"
                     )}
-                  />
-                )
-              })}
-            </div>
+                  >
+                    {currentCard.type === 1 ? "Ngữ pháp" : "Từ vựng"}
+                  </Badge>
+                  <Badge variant="outline">
+                    Câu {currentFlashcardIndex + 1}/{flashcardQuestions.length}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                {/* Question */}
+                <div className="p-6 bg-secondary/30 rounded-xl text-center">
+                  <p className="text-2xl md:text-3xl font-medium leading-relaxed">
+                    {currentCard.question}
+                  </p>
+                </div>
 
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleNext}
-              disabled={isAutoPlaying || currentFlashcardIndex >= flashcardQuestions.length - 1}
-              className="hover:bg-primary/10"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </Button>
-          </div>
+                {/* Answers - clickable */}
+                <div className="space-y-2">
+                  {currentCard.answers.map((answer, index) => {
+                    const isCorrect = answer === currentCard.correct
+                    const isSelected = selectedQuizAnswer === index
+                    const showCorrect = quizAnswered && isCorrect
+                    const showWrong = quizAnswered && isSelected && !isCorrect
+                    
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => handleQuizAnswer(index)}
+                        disabled={quizAnswered}
+                        className={cn(
+                          "w-full p-4 rounded-xl border-2 transition-all text-left",
+                          showCorrect && "border-success bg-success/20",
+                          showWrong && "border-destructive bg-destructive/20",
+                          !quizAnswered && "hover:border-primary hover:bg-primary/5 cursor-pointer border-border/50",
+                          quizAnswered && !showCorrect && !showWrong && "border-border/50 opacity-50"
+                        )}
+                      >
+                        <span className={cn(
+                          "inline-flex items-center justify-center w-8 h-8 rounded-lg mr-3 text-sm font-bold",
+                          showCorrect ? "bg-success text-success-foreground" : 
+                          showWrong ? "bg-destructive text-destructive-foreground" : "bg-secondary"
+                        )}>
+                          {["A", "B", "C", "D"][index]}
+                        </span>
+                        <span className={showCorrect ? "font-medium" : ""}>
+                          {answer}
+                        </span>
+                        {showCorrect && <Check className="w-5 h-5 inline ml-2 text-success" />}
+                        {showWrong && <X className="w-5 h-5 inline ml-2 text-destructive" />}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Explanation after answering */}
+                {quizAnswered && currentCard.explain && (
+                  <div className="p-4 bg-primary/10 rounded-xl border border-primary/20">
+                    <p className="text-sm font-bold mb-1 text-primary">Giải thích:</p>
+                    <p className="text-sm">{currentCard.explain}</p>
+                  </div>
+                )}
+
+                {/* Next button after answering */}
+                {quizAnswered && (
+                  <Button onClick={handleQuizNext} className="w-full bg-gradient-fun hover:opacity-90">
+                    {currentFlashcardIndex < flashcardQuestions.length - 1 ? (
+                      <>
+                        Câu tiếp theo
+                        <ChevronRight className="w-5 h-5 ml-2" />
+                      </>
+                    ) : (
+                      <>
+                        Xem kết quả
+                        <Sparkles className="w-5 h-5 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Navigation Buttons (not for quiz mode) */}
+          {flashcardMode !== "quiz" && (
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handlePrev}
+                disabled={isAutoPlaying}
+                className="px-6"
+              >
+                <ChevronLeft className="w-5 h-5 mr-1" />
+                Trước
+              </Button>
+
+              {/* Mark Wrong/Correct */}
+              {!isAutoPlaying && (
+                isWrongCard ? (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={handleMarkCorrect}
+                    className="text-success border-success hover:bg-success/10"
+                  >
+                    <Check className="w-5 h-5 mr-1" />
+                    Bỏ đánh dấu
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={handleMarkWrong}
+                    className="text-destructive border-destructive hover:bg-destructive/10"
+                  >
+                    <X className="w-5 h-5 mr-1" />
+                    Đánh dấu sai
+                  </Button>
+                )
+              )}
+
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleNext}
+                disabled={isAutoPlaying}
+                className="px-6"
+              >
+                Tiếp
+                <ChevronRight className="w-5 h-5 ml-1" />
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
-        <Card className="border-border/50">
+        <Card className="border-border/50 border-2 border-dashed">
           <CardContent className="py-12 text-center">
-            <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground text-lg">
+            <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Không có thẻ nào</h3>
+            <p className="text-muted-foreground">
               {flashcardFilter === "wrong" 
-                ? "Chua co cau nao duoc danh dau sai. Hay on tap va danh dau cac cau can on lai nhe!"
-                : "Khong co the nao phu hop voi bo loc hien tai."}
+                ? "Chưa có câu nào được đánh dấu sai."
+                : "Không có câu hỏi nào phù hợp với bộ lọc."}
             </p>
           </CardContent>
         </Card>

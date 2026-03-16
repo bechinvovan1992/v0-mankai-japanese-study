@@ -41,10 +41,10 @@ interface AppState {
   flashcardQuestions: Question[]
   currentFlashcardIndex: number
   flashcardFilter: "all" | "grammar" | "vocabulary" | "wrong"
-  flashcardMode: "flip" | "guess"
+  flashcardMode: "flip" | "guess" | "quiz"
   wrongAnswerIds: string[]
   setFlashcardFilter: (filter: "all" | "grammar" | "vocabulary" | "wrong") => void
-  setFlashcardMode: (mode: "flip" | "guess") => void
+  setFlashcardMode: (mode: "flip" | "guess" | "quiz") => void
   loadFlashcards: () => void
   nextFlashcard: () => void
   prevFlashcard: () => void
