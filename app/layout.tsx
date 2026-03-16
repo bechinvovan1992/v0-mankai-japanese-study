@@ -45,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="vi" className="dark" suppressHydrationWarning>
+    <html lang="vi" suppressHydrationWarning>
       <body className="font-sans antialiased">
         {children}
         <Toaster position="top-right" richColors />
