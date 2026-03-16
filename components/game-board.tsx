@@ -783,24 +783,6 @@ export function GameBoard() {
               })}
             </div>
           )}
-                  >
-                    <span className={cn(
-                      "inline-flex items-center justify-center w-8 h-8 rounded-lg mr-3 text-sm font-bold",
-                      showAsCorrect ? "bg-success text-success-foreground" : 
-                      showAsWrong ? "bg-destructive text-destructive-foreground" : "bg-secondary"
-                    )}>
-                      {["A", "B", "C", "D"][index]}
-                    </span>
-                    <span className={cn(showAsCorrect && "font-medium")}>
-                      {answer}
-                    </span>
-                    {showAsCorrect && <Check className="w-5 h-5 inline ml-2 text-success" />}
-                    {showAsWrong && <X className="w-5 h-5 inline ml-2 text-destructive" />}
-                  </button>
-                )
-              })}
-            </div>
-          )}
 
           {/* Elimination Mode Info */}
           {gameRound?.gameMode === "elimination" && !showAnswer && (
