@@ -15,6 +15,7 @@ interface AppState {
   selectAllDatasets: () => void
   deselectAllDatasets: () => void
   resetDatasetPlayed: (id: string) => void
+  resetAllSelectedPlayed: () => void
 
   // Players
   players: Player[]
@@ -103,6 +104,17 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           datasets: state.datasets.map((d) =>
             d.id === id
+              ? {
+                  ...d,
+                  questions: d.questions.map((q) => ({ ...q, played: false })),
+                }
+              : d
+          ),
+        })),
+      resetAllSelectedPlayed: () =>
+        set((state) => ({
+          datasets: state.datasets.map((d) =>
+            state.selectedDatasetIds.includes(d.id)
               ? {
                   ...d,
                   questions: d.questions.map((q) => ({ ...q, played: false })),
