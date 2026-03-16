@@ -58,25 +58,43 @@ export function DatasetManager() {
   const [selectedSheet, setSelectedSheet] = useState<string | null>(null)
   const [isLoadingSheets, setIsLoadingSheets] = useState(false)
   const [isLoadingSheetData, setIsLoadingSheetData] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [spreadsheetInfo, setSpreadsheetInfo] = useState<{ id: string; url: string } | null>(null)
 
-  // Load sheet names on mount
+  // Load config and sheet names on mount
   useEffect(() => {
+    loadConfig()
     loadSheetNames()
   }, [])
 
+  const loadConfig = async () => {
+    try {
+      const res = await fetch("/api/google-sheets?action=getConfig")
+      const data = await res.json()
+      setSpreadsheetInfo({ id: data.spreadsheetId, url: data.spreadsheetUrl })
+    } catch (error) {
+      console.error("Error loading config:", error)
+    }
+  }
+
   const loadSheetNames = async () => {
     setIsLoadingSheets(true)
+    setErrorMessage(null)
     try {
       const res = await fetch("/api/google-sheets?action=getSheets")
       const data = await res.json()
       if (data.sheets) {
         setSheetNames(data.sheets)
+        setErrorMessage(null)
         toast.success(`Da tai ${data.sheets.length} sheet`)
       } else if (data.error) {
+        const errorMsg = `Loi: ${data.error}. ${data.details || ""}`
+        setErrorMessage(errorMsg)
         toast.error(data.error)
       }
     } catch (error) {
       console.error("Error loading sheets:", error)
+      setErrorMessage("Khong the ket noi den Google Sheets API")
       toast.error("Khong the tai danh sach sheet")
     } finally {
       setIsLoadingSheets(false)
@@ -213,10 +231,31 @@ export function DatasetManager() {
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
+            ) : errorMessage ? (
+              <div className="p-4 text-sm">
+                <div className="bg-destructive/10 text-destructive rounded-lg p-3 mb-3">
+                  <p className="font-medium mb-2">Loi ket noi</p>
+                  <p className="text-xs opacity-80">{errorMessage}</p>
+                </div>
+                {spreadsheetInfo && (
+                  <div className="text-xs text-muted-foreground mt-3">
+                    <p className="mb-1">Spreadsheet ID:</p>
+                    <code className="bg-secondary px-2 py-1 rounded block overflow-x-auto">
+                      {spreadsheetInfo.id}
+                    </code>
+                    <p className="mt-3 text-xs">
+                      Dam bao Google Sheet da duoc chia se cong khai (Anyone with the link can view)
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : sheetNames.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
                 <FolderOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 Chua co sheet nao
+                {spreadsheetInfo && (
+                  <p className="text-xs mt-2 opacity-70">ID: {spreadsheetInfo.id}</p>
+                )}
               </div>
             ) : (
               <div className="space-y-1">

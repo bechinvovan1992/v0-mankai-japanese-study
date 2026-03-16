@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import type { Dataset, Question } from "@/lib/types"
 
 // Hardcoded configuration
+// Note: The spreadsheet must be publicly shared (Anyone with the link can view)
+// The SPREADSHEET_ID is extracted from your Google Sheet URL:
+// https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit
 const SPREADSHEET_ID = "1D3CHYhGkmlsE1a10DgS6l_qyYU"
 const API_KEY = "AIzaSyB7X_P9Bj5EzGeIAbzrsR9Y9o1cm7deYDE"
 
@@ -16,6 +19,15 @@ export async function GET(request: Request) {
   const sheetName = searchParams.get("sheet")
 
   try {
+    // Action: getConfig - Return current configuration for debugging
+    if (action === "getConfig") {
+      return NextResponse.json({ 
+        spreadsheetId: SPREADSHEET_ID,
+        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit`,
+        message: "Hay dam bao rang Google Sheet da duoc chia se cong khai (Anyone with the link can view)"
+      })
+    }
+
     // Action: getSheets - Fetch all sheet names from spreadsheet metadata
     if (action === "getSheets") {
       const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${API_KEY}&fields=sheets.properties.title`
