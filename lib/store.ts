@@ -8,8 +8,12 @@ interface AppState {
   // Datasets
   datasets: Dataset[]
   selectedDatasetIds: string[]
+  isLoadingFromServer: boolean
   addDataset: (dataset: Dataset) => void
+  addDatasetAndSave: (dataset: Dataset) => Promise<void>
   removeDataset: (id: string) => void
+  removeDatasetAndDelete: (id: string) => Promise<void>
+  loadDatasetsFromServer: () => Promise<void>
   selectDataset: (id: string) => void
   deselectDataset: (id: string) => void
   selectAllDatasets: () => void
@@ -78,13 +82,58 @@ export const useAppStore = create<AppState>()(
       // Datasets
       datasets: [],
       selectedDatasetIds: [],
+      isLoadingFromServer: false,
       addDataset: (dataset) =>
         set((state) => ({ datasets: [...state.datasets, dataset] })),
+      addDatasetAndSave: async (dataset) => {
+        set((state) => ({ datasets: [...state.datasets, dataset] }))
+        try {
+          await fetch("/api/datasets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dataset),
+          })
+        } catch (error) {
+          console.error("Failed to save dataset to server:", error)
+        }
+      },
       removeDataset: (id) =>
         set((state) => ({
           datasets: state.datasets.filter((d) => d.id !== id),
           selectedDatasetIds: state.selectedDatasetIds.filter((sid) => sid !== id),
         })),
+      removeDatasetAndDelete: async (id) => {
+        set((state) => ({
+          datasets: state.datasets.filter((d) => d.id !== id),
+          selectedDatasetIds: state.selectedDatasetIds.filter((sid) => sid !== id),
+        }))
+        try {
+          await fetch(`/api/datasets?id=${id}`, { method: "DELETE" })
+        } catch (error) {
+          console.error("Failed to delete dataset from server:", error)
+        }
+      },
+      loadDatasetsFromServer: async () => {
+        set({ isLoadingFromServer: true })
+        try {
+          const res = await fetch("/api/datasets")
+          const data = await res.json()
+          if (data.datasets && data.datasets.length > 0) {
+            set((state) => {
+              // Merge server datasets with local ones, avoiding duplicates
+              const existingIds = state.datasets.map((d) => d.id)
+              const newDatasets = data.datasets.filter(
+                (d: Dataset) => !existingIds.includes(d.id)
+              )
+              return { datasets: [...state.datasets, ...newDatasets] }
+            })
+          }
+        } catch (error) {
+          console.error("Failed to load datasets from server:", error)
+        } finally {
+          set({ isLoadingFromServer: false })
+        }
+      },
       selectDataset: (id) =>
         set((state) => ({
           selectedDatasetIds: state.selectedDatasetIds.includes(id)

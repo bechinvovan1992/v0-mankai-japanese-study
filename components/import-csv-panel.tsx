@@ -50,7 +50,7 @@ interface ParsedSimpleQuestion {
 type CsvFormat = "full" | "simple"
 
 export function ImportCsvPanel() {
-  const { addDataset } = useAppStore()
+  const { addDatasetAndSave } = useAppStore()
   const [file, setFile] = useState<File | null>(null)
   const [parsedData, setParsedData] = useState<ParsedQuestion[]>([])
   const [parsedSimpleData, setParsedSimpleData] = useState<ParsedSimpleQuestion[]>([])
@@ -214,7 +214,7 @@ export function ImportCsvPanel() {
     }
   }
 
-  const handleImport = () => {
+  const handleImport = async () => {
     const now = new Date()
     const fileName = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.json`
 
@@ -264,8 +264,8 @@ export function ImportCsvPanel() {
       questions,
     }
 
-    addDataset(dataset)
-    toast.success(`Đã nhập ${questions.length} câu hỏi thành công!`)
+    await addDatasetAndSave(dataset)
+    toast.success(`Đã nhập ${questions.length} câu hỏi và lưu vào server!`)
     setStep("success")
   }
 

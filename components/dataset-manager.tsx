@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAppStore } from "@/lib/store"
 import { allMockDatasets } from "@/lib/mock-data"
 import type { Dataset, Question } from "@/lib/types"
@@ -42,33 +42,40 @@ export function DatasetManager() {
   const {
     datasets,
     selectedDatasetIds,
-    addDataset,
-    removeDataset,
+    addDatasetAndSave,
+    removeDatasetAndDelete,
     selectDataset,
     deselectDataset,
     selectAllDatasets,
     deselectAllDatasets,
     resetDatasetPlayed,
+    loadDatasetsFromServer,
+    isLoadingFromServer,
   } = useAppStore()
 
   const [previewDataset, setPreviewDataset] = useState<Dataset | null>(null)
 
-  const handleLoadSampleData = () => {
-    allMockDatasets.forEach((dataset) => {
-      const exists = datasets.find((d) => d.id === dataset.id)
+  // Load datasets from server on mount
+  useEffect(() => {
+    loadDatasetsFromServer()
+  }, [loadDatasetsFromServer])
+
+  const handleLoadSampleData = async () => {
+    for (const dataset of allMockDatasets) {
+      const exists = datasets.find((d) => d.id === dataset.id || d.fileName === dataset.fileName)
       if (!exists) {
-        addDataset({
+        await addDatasetAndSave({
           ...dataset,
           id: `${dataset.id}-${Date.now()}`,
           createdAt: new Date().toISOString(),
         })
       }
-    })
-    toast.success("Đã tải dữ liệu mẫu!")
+    }
+    toast.success("Đã tải và lưu dữ liệu mẫu!")
   }
 
-  const handleDelete = (id: string) => {
-    removeDataset(id)
+  const handleDelete = async (id: string) => {
+    await removeDatasetAndDelete(id)
     toast.success("Đã xóa bộ dữ liệu")
   }
 
@@ -105,6 +112,14 @@ export function DatasetManager() {
         <Button onClick={handleLoadSampleData} className="bg-gradient-fun hover:opacity-90">
           <Sparkles className="w-4 h-4 mr-2" />
           Tải dữ liệu mẫu
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={() => loadDatasetsFromServer()}
+          disabled={isLoadingFromServer}
+        >
+          <RotateCcw className={`w-4 h-4 mr-2 ${isLoadingFromServer ? "animate-spin" : ""}`} />
+          {isLoadingFromServer ? "Đang tải..." : "Tải từ server"}
         </Button>
         <div className="flex items-center gap-2 ml-auto">
           <Button
