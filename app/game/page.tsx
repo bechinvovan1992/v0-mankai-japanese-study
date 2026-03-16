@@ -1,21 +1,21 @@
 "use client"
 
 import { Navigation } from "@/components/navigation"
-import { DashboardStats } from "@/components/dashboard-stats"
+import { GameBoard } from "@/components/game-board"
 
-export default function HomePage() {
+export default function GamePage() {
   return (
     <div className="min-h-screen">
       <Navigation />
       <main className="md:ml-64 pt-16 md:pt-0">
         <div className="p-4 md:p-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <h1 className="text-3xl font-bold">Game Mode</h1>
             <p className="text-muted-foreground">
-              Welcome to Mankai - Your Japanese Learning Companion
+              Multiplayer quiz game with board layout
             </p>
           </div>
-          <DashboardStats />
+          <GameBoard />
         </div>
       </main>
     </div>
