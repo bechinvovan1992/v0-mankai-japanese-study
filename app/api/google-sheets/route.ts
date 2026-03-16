@@ -121,8 +121,10 @@ export async function GET(request: Request) {
 
     // Action: getSheetData - Fetch data from a specific sheet
     if (action === "getSheetData" && sheetName) {
+      // Wrap sheet name in single quotes to handle names that look like cell references (e.g., TN0316)
+      const safeSheetName = `'${sheetName}'`
       const result = await fetchWithApiKeyFallback(
-        (apiKey) => `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${apiKey}`,
+        (apiKey) => `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(safeSheetName)}?key=${apiKey}`,
         apiKeys
       )
       
@@ -231,8 +233,10 @@ export async function GET(request: Request) {
     // Fetch all sheets data
     const datasets: Dataset[] = []
     for (const name of sheetNames) {
+      // Wrap sheet name in single quotes to handle names that look like cell references
+      const safeName = `'${name}'`
       const dataResult = await fetchWithApiKeyFallback(
-        (apiKey) => `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(name)}?key=${apiKey}`,
+        (apiKey) => `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(safeName)}?key=${apiKey}`,
         apiKeys
       )
 
