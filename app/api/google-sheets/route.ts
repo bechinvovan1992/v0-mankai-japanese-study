@@ -1,15 +1,61 @@
 import { NextResponse } from "next/server"
 import type { Dataset, Question } from "@/lib/types"
+import { promises as fs } from 'fs'
+import path from 'path'
 
 // Hardcoded configuration
-// Note: The spreadsheet must be publicly shared (Anyone with the link can view)
-// The SPREADSHEET_ID is extracted from your Google Sheet URL:
-// https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit
 const SPREADSHEET_ID = "1D3CHYhGkmlsE1a10DgS6l_qyYU-L3Upeh5zgXWjDUJY"
-const DEFAULT_API_KEY = "AIzaSyC8uGxGFs3IK2mdOowQ8kokw1w5yNucZrM"
+
+// Fallback API keys in case file read fails
+const FALLBACK_API_KEYS = [
+  "AIzaSyC8uGxGFs3IK2mdOowQ8kokw1w5yNucZrM",
+  "AIzaSyB7X_P9Bj5EzGeIAbzrsR9Y9o1cm7deYDE"
+]
 
 function generateId() {
   return Math.random().toString(36).substring(2, 15)
+}
+
+// Load API keys from JSON file
+async function loadApiKeys(): Promise<string[]> {
+  try {
+    const filePath = path.join(process.cwd(), 'public', 'data', 'apikey.json')
+    const fileContent = await fs.readFile(filePath, 'utf-8')
+    const data = JSON.parse(fileContent)
+    if (data.apiKeys && Array.isArray(data.apiKeys) && data.apiKeys.length > 0) {
+      return data.apiKeys
+    }
+  } catch (error) {
+    console.error("Error loading API keys from file:", error)
+  }
+  return FALLBACK_API_KEYS
+}
+
+// Make a request with API key fallback
+async function fetchWithApiKeyFallback(
+  urlTemplate: (apiKey: string) => string,
+  apiKeys: string[]
+): Promise<{ response: Response; usedApiKey: string } | { error: string; allFailed: true }> {
+  for (const apiKey of apiKeys) {
+    const url = urlTemplate(apiKey)
+    const response = await fetch(url, { cache: 'no-store' })
+    
+    if (response.ok) {
+      return { response, usedApiKey: apiKey }
+    }
+    
+    const errorText = await response.text()
+    // If it's an API key error, try next key
+    if (errorText.includes("API key not valid") || errorText.includes("API_KEY_INVALID")) {
+      console.log(`API key failed: ${apiKey.substring(0, 10)}... trying next`)
+      continue
+    }
+    
+    // For other errors, return immediately
+    return { error: errorText, allFailed: true }
+  }
+  
+  return { error: "Tất cả API Key đều không hợp lệ. Vui lòng thêm API Key mới vào file public/data/apikey.json", allFailed: true }
 }
 
 // GET - Fetch sheet names or sheet data
@@ -17,10 +63,9 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const action = searchParams.get("action")
   const sheetName = searchParams.get("sheetName") || searchParams.get("sheet")
-  const apiKeyParam = searchParams.get("apiKey")
-  
-  // Use provided API key or fall back to default
-  const API_KEY = apiKeyParam || DEFAULT_API_KEY
+
+  // Load API keys from JSON file
+  const apiKeys = await loadApiKeys()
 
   try {
     // Action: getConfig - Return current configuration for debugging
@@ -28,39 +73,23 @@ export async function GET(request: Request) {
       return NextResponse.json({ 
         spreadsheetId: SPREADSHEET_ID,
         spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit`,
-        message: "Hay dam bao rang Google Sheet da duoc chia se cong khai (Anyone with the link can view)"
+        apiKeyCount: apiKeys.length,
+        message: "Hãy đảm bảo rằng Google Sheet đã được chia sẻ công khai (Anyone with the link can view)"
       })
     }
 
     // Action: getSheets - Fetch all sheet names from spreadsheet metadata
     if (action === "getSheets") {
-      const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${API_KEY}&fields=sheets.properties.title`
-      const metadataRes = await fetch(metadataUrl, { cache: 'no-store' })
+      const result = await fetchWithApiKeyFallback(
+        (apiKey) => `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${apiKey}&fields=sheets.properties.title`,
+        apiKeys
+      )
       
-      if (!metadataRes.ok) {
-        const errorText = await metadataRes.text()
-        console.error("Google Sheets API error:", errorText)
-        
-        // Check for API key error
-        if (errorText.includes("API key not valid") || errorText.includes("API_KEY_INVALID")) {
-          return NextResponse.json({ 
-            error: "API Key khong hop le. Vui long cap nhat API Key moi trong Cai dat.", 
-            details: errorText 
-          }, { status: 400 })
-        }
-        
-        // Check for not found error
-        if (errorText.includes("not found") || metadataRes.status === 404) {
-          return NextResponse.json({ 
-            error: "Khong tim thay Google Sheet. Kiem tra lai Spreadsheet ID.", 
-            details: errorText 
-          }, { status: 404 })
-        }
-        
-        return NextResponse.json({ error: "Khong the tai danh sach sheet", details: errorText }, { status: 500 })
+      if ('allFailed' in result) {
+        return NextResponse.json({ error: result.error }, { status: 400 })
       }
 
-      const metadata = await metadataRes.json()
+      const metadata = await result.response.json()
       const sheets = metadata.sheets?.map((s: { properties: { title: string } }) => s.properties.title) || []
 
       return NextResponse.json({ sheets })
@@ -68,24 +97,16 @@ export async function GET(request: Request) {
 
     // Action: getSheetData - Fetch data from a specific sheet
     if (action === "getSheetData" && sheetName) {
-      const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${API_KEY}`
-      const dataRes = await fetch(dataUrl, { cache: 'no-store' })
-
-      if (!dataRes.ok) {
-        const errorText = await dataRes.text()
-        console.error("Google Sheets API error:", errorText)
-        
-        if (errorText.includes("API key not valid") || errorText.includes("API_KEY_INVALID")) {
-          return NextResponse.json({ 
-            error: "API Key khong hop le. Vui long cap nhat API Key moi trong Cai dat.", 
-            details: errorText 
-          }, { status: 400 })
-        }
-        
-        return NextResponse.json({ error: "Khong the tai du lieu sheet", details: errorText }, { status: 500 })
+      const result = await fetchWithApiKeyFallback(
+        (apiKey) => `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${apiKey}`,
+        apiKeys
+      )
+      
+      if ('allFailed' in result) {
+        return NextResponse.json({ error: result.error }, { status: 400 })
       }
 
-      const data = await dataRes.json()
+      const data = await result.response.json()
       const rows = data.values || []
 
       if (rows.length < 2) {
@@ -171,24 +192,28 @@ export async function GET(request: Request) {
     }
 
     // Default: fetch all sheets and their data
-    const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${API_KEY}&fields=sheets.properties.title`
-    const metadataRes = await fetch(metadataUrl, { cache: 'no-store' })
-
-    if (!metadataRes.ok) {
-      return NextResponse.json({ error: "Khong the tai spreadsheet" }, { status: 500 })
+    const metadataResult = await fetchWithApiKeyFallback(
+      (apiKey) => `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${apiKey}&fields=sheets.properties.title`,
+      apiKeys
+    )
+    
+    if ('allFailed' in metadataResult) {
+      return NextResponse.json({ error: metadataResult.error }, { status: 400 })
     }
 
-    const metadata = await metadataRes.json()
+    const metadata = await metadataResult.response.json()
     const sheetNames = metadata.sheets?.map((s: { properties: { title: string } }) => s.properties.title) || []
 
     // Fetch all sheets data
     const datasets: Dataset[] = []
     for (const name of sheetNames) {
-      const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(name)}?key=${API_KEY}`
-      const dataRes = await fetch(dataUrl, { cache: 'no-store' })
+      const dataResult = await fetchWithApiKeyFallback(
+        (apiKey) => `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(name)}?key=${apiKey}`,
+        apiKeys
+      )
 
-      if (dataRes.ok) {
-        const data = await dataRes.json()
+      if (!('allFailed' in dataResult)) {
+        const data = await dataResult.response.json()
         const rows = data.values || []
 
         if (rows.length >= 2) {
@@ -262,6 +287,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ datasets, sheets: sheetNames })
   } catch (error) {
     console.error("Error fetching Google Sheets:", error)
-    return NextResponse.json({ error: "Loi khi tai du lieu" }, { status: 500 })
+    return NextResponse.json({ error: "Lỗi khi tải dữ liệu" }, { status: 500 })
   }
 }

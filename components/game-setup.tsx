@@ -107,15 +107,14 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
     setIsLoadingSheets(true)
     setApiKeyError(null)
     try {
-      const apiKey = settings.googleApiKey
-      const res = await fetch(`/api/google-sheets?action=getSheets&apiKey=${encodeURIComponent(apiKey)}`)
+      const res = await fetch(`/api/google-sheets?action=getSheets`)
       const data = await res.json()
       if (data.sheets) {
         setSheetNames(data.sheets)
         setApiKeyError(null)
       } else if (data.error) {
-        if (data.error.includes("API key") || data.error.includes("API_KEY")) {
-          setApiKeyError("API Key không hợp lệ hoặc đã hết hạn. Vui lòng vào Cài đặt để cập nhật API Key mới.")
+        if (data.error.includes("API") || data.error.includes("key")) {
+          setApiKeyError(data.error)
         } else {
           toast.error(data.error)
         }
@@ -131,8 +130,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
   const loadSheetData = async (sheetName: string) => {
     setIsLoadingSheetData(true)
     try {
-      const apiKey = settings.googleApiKey
-      const res = await fetch(`/api/google-sheets?action=getSheetData&sheetName=${encodeURIComponent(sheetName)}&apiKey=${encodeURIComponent(apiKey)}`)
+      const res = await fetch(`/api/google-sheets?action=getSheetData&sheetName=${encodeURIComponent(sheetName)}`)
       const data = await res.json()
       if (data.dataset) {
         const { addDataset } = useAppStore.getState()
@@ -158,8 +156,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
   const loadAllSheets = async () => {
     setIsLoadingSheetData(true)
     try {
-      const apiKey = settings.googleApiKey
-      const res = await fetch(`/api/google-sheets?action=getAllData&apiKey=${encodeURIComponent(apiKey)}`)
+      const res = await fetch(`/api/google-sheets`)
       const data = await res.json()
       if (data.datasets) {
         const { addDataset } = useAppStore.getState()

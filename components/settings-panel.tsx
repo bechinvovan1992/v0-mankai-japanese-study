@@ -1,13 +1,11 @@
 "use client"
 
-import { useState } from "react"
 import { useAppStore } from "@/lib/store"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
-import { Input } from "@/components/ui/input"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,26 +27,17 @@ import {
   Palette,
   Zap,
   Key,
-  Save,
-  Eye,
-  EyeOff,
+  FileJson,
 } from "lucide-react"
 import { toast } from "sonner"
 
 export function SettingsPanel() {
   const { settings, updateSettings, resetAllData } = useAppStore()
-  const [apiKeyInput, setApiKeyInput] = useState(settings.googleApiKey || "")
-  const [showApiKey, setShowApiKey] = useState(false)
 
   const handleDarkModeToggle = (checked: boolean) => {
     updateSettings({ darkMode: checked })
     document.documentElement.classList.toggle("dark", checked)
     toast.success(`Đã bật chế độ ${checked ? "tối" : "sáng"}`)
-  }
-
-  const handleSaveApiKey = () => {
-    updateSettings({ googleApiKey: apiKeyInput })
-    toast.success("Đã lưu API Key")
   }
 
   const handleResetData = () => {
@@ -58,7 +47,7 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-6">
-      {/* API Key Configuration */}
+      {/* API Key Info */}
       <Card className="border-primary/30 bg-primary/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
@@ -66,41 +55,37 @@ export function SettingsPanel() {
             Google API Key
           </CardTitle>
           <CardDescription>
-            Cấu hình API Key để kết nối với Google Sheets. Thay đổi nếu API Key cũ hết hiệu lực.
+            Các API Key được quản lý trong file JSON
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Input
-                type={showApiKey ? "text" : "password"}
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="Nhập Google API Key..."
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full"
-                onClick={() => setShowApiKey(!showApiKey)}
-              >
-                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </Button>
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <FileJson className="w-5 h-5 text-primary" />
+              <span className="font-medium">public/data/apikey.json</span>
             </div>
-            <Button onClick={handleSaveApiKey} disabled={!apiKeyInput || !apiKeyInput.trim()}>
-              <Save className="w-4 h-4 mr-1" />
-              Lưu
-            </Button>
+            <p className="text-sm text-muted-foreground mb-3">
+              Hệ thống sẽ tự động sử dụng các API Key từ file này. Nếu một key hết hạn, 
+              hệ thống sẽ tự động chuyển sang key tiếp theo.
+            </p>
+            <div className="p-3 bg-secondary rounded-lg">
+              <p className="text-xs font-mono text-muted-foreground">
+                {`{`}<br/>
+                &nbsp;&nbsp;{`"apiKeys": [`}<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;{`"AIzaSy...key1",`}<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;{`"AIzaSy...key2"`}<br/>
+                &nbsp;&nbsp;{`]`}<br/>
+                {`}`}
+              </p>
+            </div>
           </div>
           <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm font-medium mb-2">Hướng dẫn lấy API Key:</p>
+            <p className="text-sm font-medium mb-2">Hướng dẫn thêm API Key mới:</p>
             <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
               <li>Truy cập Google Cloud Console</li>
               <li>Tạo project mới hoặc chọn project hiện có</li>
               <li>Bật Google Sheets API</li>
-              <li>Tạo API Key và dán vào đây</li>
+              <li>Tạo API Key và thêm vào file public/data/apikey.json</li>
             </ol>
           </div>
         </CardContent>
@@ -281,24 +266,24 @@ export function SettingsPanel() {
             <AlertDialogTrigger asChild>
               <Button variant="destructive" className="w-full sm:w-auto">
                 <Trash2 className="w-4 h-4 mr-2" />
-                Xoa tat ca du lieu
+                Xóa tất cả dữ liệu
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Ban co chac chan?</AlertDialogTitle>
+                <AlertDialogTitle>Bạn có chắc chắn?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Thao tac nay se xoa tat ca bo du lieu, nguoi choi, lich su choi, va dat lai tat ca cai dat ve mac dinh. 
-                  Hanh dong nay khong the hoan tac.
+                  Thao tác này sẽ xóa tất cả bộ dữ liệu, người chơi, lịch sử chơi, và đặt lại tất cả cài đặt về mặc định. 
+                  Hành động này không thể hoàn tác.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Huy</AlertDialogCancel>
+                <AlertDialogCancel>Hủy</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleResetData}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Xoa tat ca
+                  Xóa tất cả
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
