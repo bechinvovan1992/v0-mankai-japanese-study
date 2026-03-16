@@ -53,14 +53,14 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 
 const gameModes: { id: GameMode; name: string; description: string; icon: React.ElementType }[] = [
-  { id: "guess", name: "Doan dap an", description: "Tra loi mieng, sau do xem dap an", icon: HelpCircle },
-  { id: "multiple", name: "Trac nghiem", description: "Chon 1 trong 4 dap an", icon: Target },
-  { id: "elimination", name: "Loai tru", description: "Loai 2 dap an sai truoc", icon: Zap },
-  { id: "speed", name: "Toc do", description: "Tra loi trong 10 giay", icon: Timer },
-  { id: "hidden", name: "An dap an", description: "Dap an an 3 giay dau", icon: EyeOff },
-  { id: "truefalse", name: "Dung/Sai", description: "Doan dap an dung hay sai", icon: ThumbsUp },
-  { id: "suddendeath", name: "Sinh tu", description: "Tra loi sai bi loai", icon: Skull },
-  { id: "teambattle", name: "Doi khang", description: "2 doi thi dau", icon: Swords },
+  { id: "guess", name: "Đoán đáp án", description: "Trả lời miệng, sau đó xem đáp án", icon: HelpCircle },
+  { id: "multiple", name: "Trắc nghiệm", description: "Chọn 1 trong 4 đáp án", icon: Target },
+  { id: "elimination", name: "Loại trừ", description: "Loại 2 đáp án sai trước", icon: Zap },
+  { id: "speed", name: "Tốc độ", description: "Trả lời trong 10 giây", icon: Timer },
+  { id: "hidden", name: "Ẩn đáp án", description: "Đáp án ẩn 3 giây đầu", icon: EyeOff },
+  { id: "truefalse", name: "Đúng/Sai", description: "Đoán đáp án đúng hay sai", icon: ThumbsUp },
+  { id: "suddendeath", name: "Sinh tử", description: "Trả lời sai bị loại", icon: Skull },
+  { id: "teambattle", name: "Đối kháng", description: "2 đội thi đấu", icon: Swords },
 ]
 
 export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
@@ -115,14 +115,14 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
         setApiKeyError(null)
       } else if (data.error) {
         if (data.error.includes("API key") || data.error.includes("API_KEY")) {
-          setApiKeyError("API Key khong hop le hoac da het han. Vui long vao Cai dat de cap nhat API Key moi.")
+          setApiKeyError("API Key không hợp lệ hoặc đã hết hạn. Vui lòng vào Cài đặt để cập nhật API Key mới.")
         } else {
           toast.error(data.error)
         }
       }
     } catch (error) {
       console.error("Error loading sheets:", error)
-      toast.error("Khong the tai danh sach sheet")
+      toast.error("Không thể tải danh sách sheet")
     } finally {
       setIsLoadingSheets(false)
     }
@@ -143,13 +143,13 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
         } else {
           selectDataset(exists.id)
         }
-        toast.success(`Da tai ${data.dataset.totalQuestions} cau hoi tu "${sheetName}"`)
+        toast.success(`Đã tải ${data.dataset.totalQuestions} câu hỏi từ "${sheetName}"`)
       } else if (data.error) {
         toast.error(data.error)
       }
     } catch (error) {
       console.error("Error loading sheet:", error)
-      toast.error("Khong the tai du lieu sheet")
+      toast.error("Không thể tải dữ liệu sheet")
     } finally {
       setIsLoadingSheetData(false)
     }
@@ -172,11 +172,11 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
           }
         })
         selectAllDatasets()
-        toast.success(`Da tai ${data.datasets.length} sheet (${added} moi)`)
+        toast.success(`Đã tải ${data.datasets.length} sheet (${added} mới)`)
       }
     } catch (error) {
       console.error("Error loading all sheets:", error)
-      toast.error("Khong the tai tat ca sheet")
+      toast.error("Không thể tải tất cả sheet")
     } finally {
       setIsLoadingSheetData(false)
     }
@@ -186,7 +186,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
     if (newPlayerName.trim()) {
       addPlayer(newPlayerName.trim())
       setNewPlayerName("")
-      toast.success(`Da them nguoi choi: ${newPlayerName}`)
+      toast.success(`Đã thêm người chơi: ${newPlayerName}`)
     }
   }
 
@@ -195,7 +195,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
     names.forEach(name => addPlayer(name))
     setBulkNames("")
     setBulkAddOpen(false)
-    toast.success(`Da them ${names.length} nguoi choi`)
+    toast.success(`Đã thêm ${names.length} người chơi`)
   }
 
   const canStart = selectedDatasetIds.length > 0 && players.length > 0
@@ -220,24 +220,24 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
         <TabsList className="grid w-full grid-cols-3 h-14">
           <TabsTrigger value="datasets" className="flex items-center gap-2 text-sm">
             <Database className="w-4 h-4" />
-            <span className="hidden sm:inline">1. Chon du lieu</span>
-            <span className="sm:hidden">Du lieu</span>
+            <span className="hidden sm:inline">1. Chọn dữ liệu</span>
+            <span className="sm:hidden">Dữ liệu</span>
             {selectedDatasetIds.length > 0 && (
               <Badge variant="secondary" className="ml-1">{selectedDatasetIds.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="players" className="flex items-center gap-2 text-sm">
             <Users className="w-4 h-4" />
-            <span className="hidden sm:inline">2. Nguoi choi</span>
-            <span className="sm:hidden">Nguoi choi</span>
+            <span className="hidden sm:inline">2. Người chơi</span>
+            <span className="sm:hidden">Người chơi</span>
             {players.length > 0 && (
               <Badge variant="secondary" className="ml-1">{players.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="start" className="flex items-center gap-2 text-sm">
             <Play className="w-4 h-4" />
-            <span className="hidden sm:inline">3. Bat dau</span>
-            <span className="sm:hidden">Bat dau</span>
+            <span className="hidden sm:inline">3. Bắt đầu</span>
+            <span className="sm:hidden">Bắt đầu</span>
           </TabsTrigger>
         </TabsList>
 
@@ -269,13 +269,13 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                     className="flex-1"
                   >
                     {isLoadingSheetData ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    <span className="ml-1">Tat ca</span>
+                    <span className="ml-1">Tất cả</span>
                   </Button>
                 </div>
                 <div className="relative mt-2">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Tim sheet..."
+                    placeholder="Tìm sheet..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-8 h-9"
@@ -294,7 +294,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                         <div className="flex items-start gap-2">
                           <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="font-medium mb-1">Loi API Key</p>
+                            <p className="font-medium mb-1">Lỗi API Key</p>
                             <p className="text-xs opacity-80">{apiKeyError}</p>
                           </div>
                         </div>
@@ -302,13 +302,13 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                       <Link href="/settings">
                         <Button variant="outline" className="w-full">
                           <Settings className="w-4 h-4 mr-2" />
-                          Di den Cai dat
+                          Đi đến Cài đặt
                         </Button>
                       </Link>
                     </div>
                   ) : filteredSheetNames.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground text-sm px-4">
-                      {searchQuery ? `Khong tim thay "${searchQuery}"` : "Chua co sheet nao"}
+                      {searchQuery ? `Không tìm thấy "${searchQuery}"` : "Chưa có sheet nào"}
                     </div>
                   ) : (
                     <div className="p-2 space-y-1">
@@ -353,25 +353,25 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
             <Card className="lg:col-span-2">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Bo du lieu da chon</CardTitle>
+                  <CardTitle className="text-lg">Bộ dữ liệu đã chọn</CardTitle>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={selectAllDatasets} disabled={datasets.length === 0}>
-                      Chon tat ca
+                      Chọn tất cả
                     </Button>
                     <Button variant="outline" size="sm" onClick={deselectAllDatasets} disabled={selectedDatasetIds.length === 0}>
-                      Bo chon
+                      Bỏ chọn
                     </Button>
                   </div>
                 </div>
                 <CardDescription>
-                  {selectedDatasetIds.length} bo du lieu - {selectedQuestionCount} cau hoi chua choi
+                  {selectedDatasetIds.length} bộ dữ liệu - {selectedQuestionCount} câu hỏi chưa chơi
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {datasets.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <Database className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p>Chua co du lieu. Chon sheet tu danh sach ben trai.</p>
+                    <p>Chưa có dữ liệu. Chọn sheet từ danh sách bên trái.</p>
                   </div>
                 ) : (
                   <ScrollArea className="h-[280px]">
@@ -395,11 +395,11 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate">{dataset.fileName}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {unplayedCount}/{dataset.totalQuestions} cau chua choi
+                                  {unplayedCount}/{dataset.totalQuestions} câu chưa chơi
                                 </p>
                               </div>
                               <Badge variant={dataset.type === 1 ? "default" : "secondary"}>
-                                {dataset.type === 1 ? "Ngu phap" : "Tu vung"}
+                                {dataset.type === 1 ? "Ngữ pháp" : "Từ vựng"}
                               </Badge>
                             </div>
                           </div>
@@ -414,7 +414,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
 
           <div className="flex justify-end mt-4">
             <Button onClick={goToNextTab} disabled={selectedDatasetIds.length === 0}>
-              Tiep theo <ChevronRight className="w-4 h-4 ml-1" />
+              Tiếp theo <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </TabsContent>
@@ -425,15 +425,15 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
-                Nguoi choi ({players.length})
+                Người chơi ({players.length})
               </CardTitle>
-              <CardDescription>Them nguoi choi de bat dau tro choi</CardDescription>
+              <CardDescription>Thêm người chơi để bắt đầu trò chơi</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add Player */}
               <div className="flex gap-2">
                 <Input
-                  placeholder="Ten nguoi choi..."
+                  placeholder="Tên người chơi..."
                   value={newPlayerName}
                   onChange={(e) => setNewPlayerName(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleAddPlayer()}
@@ -451,16 +451,16 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
               {players.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  <p>Chua co nguoi choi. Them nguoi choi o tren.</p>
+                  <p>Chưa có người chơi. Thêm người chơi ở trên.</p>
                 </div>
               ) : (
                 <>
                   <div className="flex gap-2 justify-end">
                     <Button variant="outline" size="sm" onClick={randomizePlayers}>
-                      <Shuffle className="w-4 h-4 mr-1" /> Xao tron
+                      <Shuffle className="w-4 h-4 mr-1" /> Xáo trộn
                     </Button>
                     <Button variant="outline" size="sm" onClick={resetPlayers}>
-                      <Trash2 className="w-4 h-4 mr-1" /> Xoa het
+                      <Trash2 className="w-4 h-4 mr-1" /> Xóa hết
                     </Button>
                   </div>
                   <ScrollArea className="h-[300px]">
@@ -503,10 +503,10 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
 
           <div className="flex justify-between mt-4">
             <Button variant="outline" onClick={goToPrevTab}>
-              <ChevronLeft className="w-4 h-4 mr-1" /> Quay lai
+              <ChevronLeft className="w-4 h-4 mr-1" /> Quay lại
             </Button>
             <Button onClick={goToNextTab} disabled={players.length === 0}>
-              Tiep theo <ChevronRight className="w-4 h-4 ml-1" />
+              Tiếp theo <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
 
@@ -514,18 +514,18 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
           <Dialog open={bulkAddOpen} onOpenChange={setBulkAddOpen}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Them nhieu nguoi choi</DialogTitle>
-                <DialogDescription>Moi dong la mot nguoi choi</DialogDescription>
+                <DialogTitle>Thêm nhiều người chơi</DialogTitle>
+                <DialogDescription>Mỗi dòng là một người chơi</DialogDescription>
               </DialogHeader>
               <Textarea
-                placeholder="Nguoi choi 1&#10;Nguoi choi 2&#10;Nguoi choi 3"
+                placeholder="Người chơi 1&#10;Người chơi 2&#10;Người chơi 3"
                 value={bulkNames}
                 onChange={(e) => setBulkNames(e.target.value)}
                 rows={8}
               />
               <DialogFooter>
-                <Button variant="outline" onClick={() => setBulkAddOpen(false)}>Huy</Button>
-                <Button onClick={handleBulkAdd} disabled={!bulkNames.trim()}>Them</Button>
+                <Button variant="outline" onClick={() => setBulkAddOpen(false)}>Hủy</Button>
+                <Button onClick={handleBulkAdd} disabled={!bulkNames.trim()}>Thêm</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -534,25 +534,25 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
           <Dialog open={!!editingPlayer} onOpenChange={() => setEditingPlayer(null)}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Sua ten nguoi choi</DialogTitle>
-                <DialogDescription>Nhap ten moi cho nguoi choi</DialogDescription>
+                <DialogTitle>Sửa tên người chơi</DialogTitle>
+                <DialogDescription>Nhập tên mới cho người chơi</DialogDescription>
               </DialogHeader>
               <Input
                 value={editingPlayer?.name || ""}
                 onChange={(e) => setEditingPlayer(prev => prev ? { ...prev, name: e.target.value } : null)}
               />
               <DialogFooter>
-                <Button variant="outline" onClick={() => setEditingPlayer(null)}>Huy</Button>
+                <Button variant="outline" onClick={() => setEditingPlayer(null)}>Hủy</Button>
                 <Button
                   onClick={() => {
                     if (editingPlayer) {
                       updatePlayer(editingPlayer.id, editingPlayer.name)
                       setEditingPlayer(null)
-                      toast.success("Da cap nhat ten")
+                      toast.success("Đã cập nhật tên")
                     }
                   }}
                 >
-                  Luu
+                  Lưu
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -568,19 +568,19 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
                     <p className="text-3xl font-bold text-primary">{selectedDatasetIds.length}</p>
-                    <p className="text-sm text-muted-foreground">Bo du lieu</p>
+                    <p className="text-sm text-muted-foreground">Bộ dữ liệu</p>
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-primary">{selectedQuestionCount}</p>
-                    <p className="text-sm text-muted-foreground">Cau hoi</p>
+                    <p className="text-sm text-muted-foreground">Câu hỏi</p>
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-primary">{players.length}</p>
-                    <p className="text-sm text-muted-foreground">Nguoi choi</p>
+                    <p className="text-sm text-muted-foreground">Người chơi</p>
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-primary">{settings.boardColumns}</p>
-                    <p className="text-sm text-muted-foreground">Cot bang</p>
+                    <p className="text-sm text-muted-foreground">Cột bảng</p>
                   </div>
                 </div>
               </CardContent>
@@ -589,8 +589,8 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
             {/* Game Mode Selection */}
             <Card>
               <CardHeader>
-                <CardTitle>Chon che do choi</CardTitle>
-                <CardDescription>Moi che do co cach choi khac nhau</CardDescription>
+                <CardTitle>Chọn chế độ chơi</CardTitle>
+                <CardDescription>Mỗi chế độ có cách chơi khác nhau</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -621,7 +621,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
             {/* Start Button */}
             <div className="flex justify-between">
               <Button variant="outline" onClick={goToPrevTab}>
-                <ChevronLeft className="w-4 h-4 mr-1" /> Quay lai
+                <ChevronLeft className="w-4 h-4 mr-1" /> Quay lại
               </Button>
               <Button
                 size="lg"
@@ -630,7 +630,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                 className="bg-gradient-fun hover:opacity-90 px-8"
               >
                 <Play className="w-5 h-5 mr-2" />
-                Bat dau choi!
+                Bắt đầu chơi!
               </Button>
             </div>
           </div>

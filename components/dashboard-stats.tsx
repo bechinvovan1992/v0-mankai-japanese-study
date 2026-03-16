@@ -57,22 +57,22 @@ export function DashboardStats() {
 
   const quickActions = [
     {
-      title: "Tro choi",
-      description: "Chon du lieu, nguoi choi va bat dau",
+      title: "Trò chơi",
+      description: "Chọn dữ liệu, người chơi và bắt đầu",
       href: "/game",
       icon: Gamepad2,
       gradient: "from-violet-500 to-purple-500",
     },
     {
-      title: "On tap",
-      description: "On tap voi the ghi nho",
+      title: "Ôn tập",
+      description: "Ôn tập với thẻ ghi nhớ",
       href: "/review",
       icon: BookMarked,
       gradient: "from-emerald-500 to-teal-500",
     },
     {
-      title: "Cai dat",
-      description: "Cau hinh API Key & giao dien",
+      title: "Cài đặt",
+      description: "Cấu hình API Key & giao diện",
       href: "/settings",
       icon: Settings,
       gradient: "from-amber-500 to-orange-500",
@@ -127,7 +127,7 @@ export function DashboardStats() {
       <div>
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
-          Bat dau nhanh
+          Bắt đầu nhanh
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action) => {

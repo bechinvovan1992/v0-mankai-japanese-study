@@ -1,7 +1,7 @@
 "use client"
 
 import { Navigation } from "@/components/navigation"
-import { FlashcardPlayer } from "@/components/flashcard-player"
+import { ReviewPlayer } from "@/components/review-player"
 
 export default function ReviewPage() {
   return (
@@ -10,12 +10,12 @@ export default function ReviewPage() {
       <main className="md:ml-64 pt-16 md:pt-0">
         <div className="p-4 md:p-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold">On tap</h1>
+            <h1 className="text-3xl font-bold">Ôn tập</h1>
             <p className="text-muted-foreground">
-              On tap cau hoi voi the ghi nho tuong tac
+              Ôn tập câu hỏi với thẻ ghi nhớ tương tác
             </p>
           </div>
-          <FlashcardPlayer />
+          <ReviewPlayer />
         </div>
       </main>
     </div>
