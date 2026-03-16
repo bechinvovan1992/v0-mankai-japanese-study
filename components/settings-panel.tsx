@@ -37,23 +37,23 @@ import { toast } from "sonner"
 
 export function SettingsPanel() {
   const { settings, updateSettings, resetAllData } = useAppStore()
-  const [apiKeyInput, setApiKeyInput] = useState(settings.googleApiKey)
+  const [apiKeyInput, setApiKeyInput] = useState(settings.googleApiKey || "")
   const [showApiKey, setShowApiKey] = useState(false)
 
   const handleDarkModeToggle = (checked: boolean) => {
     updateSettings({ darkMode: checked })
     document.documentElement.classList.toggle("dark", checked)
-    toast.success(`Da bat che do ${checked ? "toi" : "sang"}`)
+    toast.success(`Đã bật chế độ ${checked ? "tối" : "sáng"}`)
   }
 
   const handleSaveApiKey = () => {
     updateSettings({ googleApiKey: apiKeyInput })
-    toast.success("Da luu API Key")
+    toast.success("Đã lưu API Key")
   }
 
   const handleResetData = () => {
     resetAllData()
-    toast.success("Da xoa tat ca du lieu")
+    toast.success("Đã xóa tất cả dữ liệu")
   }
 
   return (
@@ -66,7 +66,7 @@ export function SettingsPanel() {
             Google API Key
           </CardTitle>
           <CardDescription>
-            Cau hinh API Key de ket noi voi Google Sheets. Thay doi neu API Key cu het hieu luc.
+            Cấu hình API Key để kết nối với Google Sheets. Thay đổi nếu API Key cũ hết hiệu lực.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -76,7 +76,7 @@ export function SettingsPanel() {
                 type={showApiKey ? "text" : "password"}
                 value={apiKeyInput}
                 onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="Nhap Google API Key..."
+                placeholder="Nhập Google API Key..."
                 className="pr-10"
               />
               <Button
@@ -89,18 +89,18 @@ export function SettingsPanel() {
                 {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </Button>
             </div>
-            <Button onClick={handleSaveApiKey} disabled={!apiKeyInput.trim()}>
+            <Button onClick={handleSaveApiKey} disabled={!apiKeyInput || !apiKeyInput.trim()}>
               <Save className="w-4 h-4 mr-1" />
-              Luu
+              Lưu
             </Button>
           </div>
           <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm font-medium mb-2">Huong dan lay API Key:</p>
+            <p className="text-sm font-medium mb-2">Hướng dẫn lấy API Key:</p>
             <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Truy cap Google Cloud Console</li>
-              <li>Tao project moi hoac chon project hien co</li>
-              <li>Bat Google Sheets API</li>
-              <li>Tao API Key va dan vao day</li>
+              <li>Truy cập Google Cloud Console</li>
+              <li>Tạo project mới hoặc chọn project hiện có</li>
+              <li>Bật Google Sheets API</li>
+              <li>Tạo API Key và dán vào đây</li>
             </ol>
           </div>
         </CardContent>
@@ -111,10 +111,10 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Palette className="w-5 h-5 text-primary" />
-            Giao dien
+            Giao diện
           </CardTitle>
           <CardDescription>
-            Tuy chinh giao dien ung dung theo y thich cua ban
+            Tùy chỉnh giao diện ứng dụng theo ý thích của bạn
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -129,9 +129,9 @@ export function SettingsPanel() {
                 )}
               </div>
               <div>
-                <Label className="text-base font-medium">Che do toi</Label>
+                <Label className="text-base font-medium">Chế độ tối</Label>
                 <p className="text-sm text-muted-foreground">
-                  Bat/tat giao dien toi
+                  Bật/tắt giao diện tối
                 </p>
               </div>
             </div>
@@ -148,9 +148,9 @@ export function SettingsPanel() {
                 <Zap className="w-6 h-6 text-chart-1" />
               </div>
               <div>
-                <Label className="text-base font-medium">Hieu ung</Label>
+                <Label className="text-base font-medium">Hiệu ứng</Label>
                 <p className="text-sm text-muted-foreground">
-                  Bat/tat hieu ung chuyen dong
+                  Bật/tắt hiệu ứng chuyển động
                 </p>
               </div>
             </div>
@@ -169,9 +169,9 @@ export function SettingsPanel() {
                 <Volume2 className="w-6 h-6 text-chart-2" />
               </div>
               <div>
-                <Label className="text-base font-medium">Am thanh</Label>
+                <Label className="text-base font-medium">Âm thanh</Label>
                 <p className="text-sm text-muted-foreground">
-                  Bat/tat hieu ung am thanh
+                  Bật/tắt hiệu ứng âm thanh
                 </p>
               </div>
             </div>
@@ -190,18 +190,18 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Grid className="w-5 h-5 text-primary" />
-            Cai dat tro choi
+            Cài đặt trò chơi
           </CardTitle>
           <CardDescription>
-            Tuy chinh bang game va cach choi
+            Tùy chỉnh bảng game và cách chơi
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Board Columns */}
           <div className="p-4 bg-secondary/50 rounded-xl">
             <div className="flex items-center justify-between mb-4">
-              <Label className="text-base font-medium">So cot bang: {settings.boardColumns}</Label>
-              <span className="text-sm text-muted-foreground">{settings.boardColumns} cot</span>
+              <Label className="text-base font-medium">Số cột bảng: {settings.boardColumns}</Label>
+              <span className="text-sm text-muted-foreground">{settings.boardColumns} cột</span>
             </div>
             <Slider
               value={[settings.boardColumns]}
@@ -211,7 +211,7 @@ export function SettingsPanel() {
               step={1}
             />
             <p className="text-sm text-muted-foreground mt-3">
-              So cot hien thi trong bang game (2-8 cot)
+              Số cột hiển thị trong bảng game (2-8 cột)
             </p>
           </div>
         </CardContent>
@@ -222,18 +222,18 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" />
-            Cai dat On tap
+            Cài đặt Ôn tập
           </CardTitle>
           <CardDescription>
-            Tuy chinh thoi gian phat tu dong
+            Tùy chỉnh thời gian phát tự động
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Front Time */}
           <div className="p-4 bg-secondary/50 rounded-xl">
             <div className="flex items-center justify-between mb-4">
-              <Label className="text-base font-medium">Mat truoc</Label>
-              <span className="text-sm text-muted-foreground">{settings.autoPlayFrontTime} giay</span>
+              <Label className="text-base font-medium">Mặt trước</Label>
+              <span className="text-sm text-muted-foreground">{settings.autoPlayFrontTime} giây</span>
             </div>
             <Slider
               value={[settings.autoPlayFrontTime]}
@@ -249,8 +249,8 @@ export function SettingsPanel() {
           {/* Back Time */}
           <div className="p-4 bg-secondary/50 rounded-xl">
             <div className="flex items-center justify-between mb-4">
-              <Label className="text-base font-medium">Mat sau</Label>
-              <span className="text-sm text-muted-foreground">{settings.autoPlayBackTime} giay</span>
+              <Label className="text-base font-medium">Mặt sau</Label>
+              <span className="text-sm text-muted-foreground">{settings.autoPlayBackTime} giây</span>
             </div>
             <Slider
               value={[settings.autoPlayBackTime]}
@@ -270,10 +270,10 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
             <Trash2 className="w-5 h-5" />
-            Quan ly du lieu
+            Quản lý dữ liệu
           </CardTitle>
           <CardDescription>
-            Xoa tat ca du lieu ung dung (khong the hoan tac)
+            Xóa tất cả dữ liệu ứng dụng (không thể hoàn tác)
           </CardDescription>
         </CardHeader>
         <CardContent>
