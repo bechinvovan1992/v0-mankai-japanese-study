@@ -82,7 +82,13 @@ export function GameBoard() {
     nextTeam,
     addTeamScore,
     resetAllSelectedPlayed,
+    loadDatasetsFromServer,
   } = useAppStore()
+
+  // Load datasets from server on mount
+  useEffect(() => {
+    loadDatasetsFromServer()
+  }, [loadDatasetsFromServer])
 
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
   const [showAnswer, setShowAnswer] = useState(false)
