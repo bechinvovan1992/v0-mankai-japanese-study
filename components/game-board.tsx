@@ -82,13 +82,15 @@ export function GameBoard() {
     nextTeam,
     addTeamScore,
     resetAllSelectedPlayed,
-    loadDatasetsFromServer,
+    loadDatasetsFromGoogleSheet,
   } = useAppStore()
 
-  // Load datasets from server on mount
+  // Load datasets from Google Sheet on mount if URL is set
   useEffect(() => {
-    loadDatasetsFromServer()
-  }, [loadDatasetsFromServer])
+    if (settings.googleSheetUrl) {
+      loadDatasetsFromGoogleSheet()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
   const [showAnswer, setShowAnswer] = useState(false)

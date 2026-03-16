@@ -1,11 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import { useAppStore } from "@/lib/store"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
+import { Input } from "@/components/ui/input"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,21 +20,24 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
-  Settings,
   Moon,
   Sun,
   Grid,
-  Sparkles,
   Volume2,
   Clock,
   Trash2,
   Palette,
   Zap,
+  FileSpreadsheet,
+  ExternalLink,
+  RefreshCw,
+  CheckCircle,
 } from "lucide-react"
 import { toast } from "sonner"
 
 export function SettingsPanel() {
-  const { settings, updateSettings, resetAllData } = useAppStore()
+  const { settings, updateSettings, resetAllData, loadDatasetsFromGoogleSheet, isLoadingFromGoogleSheet } = useAppStore()
+  const [tempGoogleSheetUrl, setTempGoogleSheetUrl] = useState(settings.googleSheetUrl || "")
 
   const handleDarkModeToggle = (checked: boolean) => {
     updateSettings({ darkMode: checked })
@@ -45,8 +50,103 @@ export function SettingsPanel() {
     toast.success("Đã xóa tất cả dữ liệu")
   }
 
+  const handleSaveGoogleSheetUrl = async () => {
+    updateSettings({ googleSheetUrl: tempGoogleSheetUrl })
+    toast.success("Đã lưu liên kết Google Sheet")
+    
+    if (tempGoogleSheetUrl) {
+      // Auto load data after saving
+      await loadDatasetsFromGoogleSheet()
+      toast.success("Đã tải dữ liệu từ Google Sheet")
+    }
+  }
+
+  const handleRefreshGoogleSheet = async () => {
+    if (!settings.googleSheetUrl) {
+      toast.error("Vui lòng nhập liên kết Google Sheet trước")
+      return
+    }
+    await loadDatasetsFromGoogleSheet()
+    toast.success("Đã tải lại dữ liệu từ Google Sheet")
+  }
+
   return (
     <div className="space-y-6">
+      {/* Google Sheet Configuration */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <FileSpreadsheet className="w-5 h-5" />
+            Cấu hình Google Sheet
+          </CardTitle>
+          <CardDescription>
+            Kết nối với Google Sheet để tải dữ liệu câu hỏi tự động
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 bg-secondary/50 rounded-xl space-y-4">
+            <div>
+              <Label className="text-base font-medium mb-2 block">Liên kết Google Sheet</Label>
+              <p className="text-sm text-muted-foreground mb-3">
+                Dán liên kết Google Sheet đã được chia sẻ công khai. Mỗi sheet sẽ trở thành một bộ dữ liệu.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://docs.google.com/spreadsheets/d/..."
+                  value={tempGoogleSheetUrl}
+                  onChange={(e) => setTempGoogleSheetUrl(e.target.value)}
+                  className="flex-1"
+                />
+                <Button onClick={handleSaveGoogleSheetUrl} disabled={isLoadingFromGoogleSheet}>
+                  {isLoadingFromGoogleSheet ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {settings.googleSheetUrl && (
+              <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/30">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  <span className="text-sm text-success font-medium">Đã kết nối Google Sheet</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(settings.googleSheetUrl, '_blank')}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Mở
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefreshGoogleSheet}
+                    disabled={isLoadingFromGoogleSheet}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-1 ${isLoadingFromGoogleSheet ? "animate-spin" : ""}`} />
+                    Tải lại
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm font-medium mb-2">Định dạng dữ liệu:</p>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p><strong>Đầy đủ (8 cột):</strong> type | question | answer1 | answer2 | answer3 | answer4 | correct | explain</p>
+                <p><strong>Đơn giản (3 cột):</strong> type | question | answer</p>
+                <p className="mt-2"><em>type: 1 = Ngữ pháp, 2 = Từ vựng</em></p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Appearance */}
       <Card className="border-border/50">
         <CardHeader>

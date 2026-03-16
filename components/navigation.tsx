@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
-  Upload,
   Database,
   Users,
   Gamepad2,
@@ -20,7 +19,6 @@ import { useState } from "react"
 
 const navItems = [
   { href: "/", label: "Trang chủ", icon: LayoutDashboard },
-  { href: "/import", label: "Nhập CSV", icon: Upload },
   { href: "/datasets", label: "Bộ dữ liệu", icon: Database },
   { href: "/players", label: "Người chơi", icon: Users },
   { href: "/game", label: "Trò chơi", icon: Gamepad2 },

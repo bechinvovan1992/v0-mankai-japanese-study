@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useAppStore } from "@/lib/store"
-import { allMockDatasets } from "@/lib/mock-data"
-import type { Dataset, Question } from "@/lib/types"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { Dataset } from "@/lib/types"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
@@ -24,58 +23,57 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  Database,
   BookOpen,
   Languages,
   Trash2,
   RotateCcw,
   Eye,
-  Plus,
   CheckSquare,
   Square,
   Sparkles,
   FolderOpen,
+  FileSpreadsheet,
+  RefreshCw,
+  Settings,
 } from "lucide-react"
 import { toast } from "sonner"
+import Link from "next/link"
 
 export function DatasetManager() {
   const {
     datasets,
     selectedDatasetIds,
-    addDatasetAndSave,
-    removeDatasetAndDelete,
     selectDataset,
     deselectDataset,
     selectAllDatasets,
     deselectAllDatasets,
     resetDatasetPlayed,
-    loadDatasetsFromServer,
-    isLoadingFromServer,
+    loadDatasetsFromGoogleSheet,
+    isLoadingFromGoogleSheet,
+    settings,
+    removeDataset,
   } = useAppStore()
 
   const [previewDataset, setPreviewDataset] = useState<Dataset | null>(null)
 
-  // Load datasets from server on mount
+  // Load datasets from Google Sheet on mount if URL is set
   useEffect(() => {
-    loadDatasetsFromServer()
-  }, [loadDatasetsFromServer])
-
-  const handleLoadSampleData = async () => {
-    for (const dataset of allMockDatasets) {
-      const exists = datasets.find((d) => d.id === dataset.id || d.fileName === dataset.fileName)
-      if (!exists) {
-        await addDatasetAndSave({
-          ...dataset,
-          id: `${dataset.id}-${Date.now()}`,
-          createdAt: new Date().toISOString(),
-        })
-      }
+    if (settings.googleSheetUrl) {
+      loadDatasetsFromGoogleSheet()
     }
-    toast.success("Đã tải và lưu dữ liệu mẫu!")
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRefreshData = async () => {
+    if (!settings.googleSheetUrl) {
+      toast.error("Vui lòng cấu hình liên kết Google Sheet trong Cài đặt")
+      return
+    }
+    await loadDatasetsFromGoogleSheet()
+    toast.success("Đã tải lại dữ liệu từ Google Sheet")
   }
 
-  const handleDelete = async (id: string) => {
-    await removeDatasetAndDelete(id)
+  const handleDelete = (id: string) => {
+    removeDataset(id)
     toast.success("Đã xóa bộ dữ liệu")
   }
 
@@ -93,7 +91,6 @@ export function DatasetManager() {
   }
 
   const allSelected = datasets.length > 0 && selectedDatasetIds.length === datasets.length
-  const someSelected = selectedDatasetIds.length > 0 && !allSelected
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN", {
@@ -109,18 +106,28 @@ export function DatasetManager() {
     <div className="space-y-6">
       {/* Actions Bar */}
       <div className="flex flex-wrap items-center gap-4">
-        <Button onClick={handleLoadSampleData} className="bg-gradient-fun hover:opacity-90">
-          <Sparkles className="w-4 h-4 mr-2" />
-          Tải dữ liệu mẫu
-        </Button>
         <Button 
-          variant="outline" 
-          onClick={() => loadDatasetsFromServer()}
-          disabled={isLoadingFromServer}
+          onClick={handleRefreshData}
+          disabled={isLoadingFromGoogleSheet}
+          className="bg-gradient-fun hover:opacity-90"
         >
-          <RotateCcw className={`w-4 h-4 mr-2 ${isLoadingFromServer ? "animate-spin" : ""}`} />
-          {isLoadingFromServer ? "Đang tải..." : "Tải từ server"}
+          {isLoadingFromGoogleSheet ? (
+            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+          )}
+          {isLoadingFromGoogleSheet ? "Đang tải..." : "Tải từ Google Sheet"}
         </Button>
+        
+        {!settings.googleSheetUrl && (
+          <Link href="/settings">
+            <Button variant="outline">
+              <Settings className="w-4 h-4 mr-2" />
+              Cấu hình Google Sheet
+            </Button>
+          </Link>
+        )}
+        
         <div className="flex items-center gap-2 ml-auto">
           <Button
             variant="ghost"
@@ -142,13 +149,34 @@ export function DatasetManager() {
         </div>
       </div>
 
-      {/* Selection Info */}
-      {selectedDatasetIds.length > 0 && (
-        <Card className="border-primary/50 bg-primary/10">
+      {/* Google Sheet Info */}
+      {settings.googleSheetUrl && (
+        <Card className="border-primary/30 bg-primary/5">
           <CardContent className="py-3 px-4">
             <div className="flex items-center justify-between">
               <span className="text-sm flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
+                <FileSpreadsheet className="w-4 h-4 text-primary" />
+                Đã kết nối Google Sheet
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => window.open(settings.googleSheetUrl, '_blank')}
+              >
+                Mở Sheet
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Selection Info */}
+      {selectedDatasetIds.length > 0 && (
+        <Card className="border-chart-3/50 bg-chart-3/10">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-chart-3" />
                 <strong>{selectedDatasetIds.length}</strong> bộ dữ liệu đã chọn cho game/flashcard
               </span>
               <Button variant="ghost" size="sm" onClick={deselectAllDatasets}>
@@ -168,12 +196,23 @@ export function DatasetManager() {
             </div>
             <h3 className="text-xl font-bold mb-2">Chưa có bộ dữ liệu</h3>
             <p className="text-muted-foreground mb-6">
-              Nhập file CSV hoặc tải dữ liệu mẫu để bắt đầu.
+              {settings.googleSheetUrl 
+                ? "Nhấn nút 'Tải từ Google Sheet' để tải dữ liệu."
+                : "Vui lòng cấu hình liên kết Google Sheet trong Cài đặt."}
             </p>
-            <Button onClick={handleLoadSampleData} className="bg-gradient-fun hover:opacity-90">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Tải dữ liệu mẫu
-            </Button>
+            {settings.googleSheetUrl ? (
+              <Button onClick={handleRefreshData} className="bg-gradient-fun hover:opacity-90">
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Tải từ Google Sheet
+              </Button>
+            ) : (
+              <Link href="/settings">
+                <Button className="bg-gradient-fun hover:opacity-90">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Cấu hình Google Sheet
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : (

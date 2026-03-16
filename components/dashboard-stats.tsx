@@ -9,7 +9,6 @@ import {
   HelpCircle,
   BookOpen,
   Languages,
-  Upload,
   Gamepad2,
   BookMarked,
   Settings,
@@ -59,10 +58,10 @@ export function DashboardStats() {
 
   const quickActions = [
     {
-      title: "Nhập CSV",
-      description: "Thêm câu hỏi từ file CSV",
-      href: "/import",
-      icon: Upload,
+      title: "Bộ dữ liệu",
+      description: "Xem và chọn bộ dữ liệu",
+      href: "/datasets",
+      icon: Database,
       gradient: "from-pink-500 to-rose-500",
     },
     {
@@ -80,9 +79,9 @@ export function DashboardStats() {
       gradient: "from-emerald-500 to-teal-500",
     },
     {
-      title: "Quản lý dữ liệu",
-      description: "Xem và quản lý bộ dữ liệu",
-      href: "/datasets",
+      title: "Cài đặt",
+      description: "Cấu hình Google Sheet",
+      href: "/settings",
       icon: Settings,
       gradient: "from-amber-500 to-orange-500",
     },

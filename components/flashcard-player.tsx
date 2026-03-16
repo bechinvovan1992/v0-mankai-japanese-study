@@ -48,7 +48,7 @@ export function FlashcardPlayer() {
     setFlashcardFilter,
     setFlashcardMode,
     loadFlashcards,
-    loadDatasetsFromServer,
+    loadDatasetsFromGoogleSheet,
     nextFlashcard,
     prevFlashcard,
     shuffleFlashcards,
@@ -78,10 +78,12 @@ export function FlashcardPlayer() {
   const currentCard = flashcardQuestions[currentFlashcardIndex]
   const isWrongCard = currentCard ? wrongAnswerIds.includes(currentCard.id) : false
 
-  // Load datasets from server on mount
+  // Load datasets from Google Sheet on mount if URL is set
   useEffect(() => {
-    loadDatasetsFromServer()
-  }, [loadDatasetsFromServer])
+    if (settings.googleSheetUrl) {
+      loadDatasetsFromGoogleSheet()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load flashcards when filter or selection changes
   useEffect(() => {
