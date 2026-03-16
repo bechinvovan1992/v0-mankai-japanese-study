@@ -81,6 +81,7 @@ export function GameBoard() {
     setupTeams,
     nextTeam,
     addTeamScore,
+    resetAllSelectedPlayed,
   } = useAppStore()
 
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
@@ -134,6 +135,12 @@ export function GameBoard() {
       setupTeams(2)
     }
     toast.success("Bắt đầu trò chơi!")
+  }
+
+  const handlePlayAgain = () => {
+    resetAllSelectedPlayed()
+    endGame()
+    toast.success("Đã reset tất cả câu hỏi. Bắt đầu chơi lại!")
   }
 
   const resetQuestionState = useCallback(() => {
@@ -452,6 +459,9 @@ export function GameBoard() {
             <Trophy className="w-4 h-4 mr-2 text-warning" />
             Bảng điểm
           </Button>
+          <Button variant="outline" onClick={handlePlayAgain}>
+            Chơi lại
+          </Button>
           <Button variant="destructive" onClick={endGame}>
             Kết thúc
           </Button>
@@ -523,7 +533,7 @@ export function GameBoard() {
               <Button onClick={() => setShowScoreboard(true)} size="lg">
                 Xem bảng điểm
               </Button>
-              <Button variant="outline" onClick={endGame} size="lg">
+              <Button variant="outline" onClick={handlePlayAgain} size="lg">
                 Chơi lại
               </Button>
             </div>
