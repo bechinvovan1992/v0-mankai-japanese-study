@@ -38,9 +38,26 @@ export async function GET(request: Request) {
       const metadataRes = await fetch(metadataUrl, { cache: 'no-store' })
       
       if (!metadataRes.ok) {
-        const error = await metadataRes.text()
-        console.error("Google Sheets API error:", error)
-        return NextResponse.json({ error: "Khong the tai danh sach sheet", details: error }, { status: 500 })
+        const errorText = await metadataRes.text()
+        console.error("Google Sheets API error:", errorText)
+        
+        // Check for API key error
+        if (errorText.includes("API key not valid") || errorText.includes("API_KEY_INVALID")) {
+          return NextResponse.json({ 
+            error: "API Key khong hop le. Vui long cap nhat API Key moi trong Cai dat.", 
+            details: errorText 
+          }, { status: 400 })
+        }
+        
+        // Check for not found error
+        if (errorText.includes("not found") || metadataRes.status === 404) {
+          return NextResponse.json({ 
+            error: "Khong tim thay Google Sheet. Kiem tra lai Spreadsheet ID.", 
+            details: errorText 
+          }, { status: 404 })
+        }
+        
+        return NextResponse.json({ error: "Khong the tai danh sach sheet", details: errorText }, { status: 500 })
       }
 
       const metadata = await metadataRes.json()
@@ -55,9 +72,17 @@ export async function GET(request: Request) {
       const dataRes = await fetch(dataUrl, { cache: 'no-store' })
 
       if (!dataRes.ok) {
-        const error = await dataRes.text()
-        console.error("Google Sheets API error:", error)
-        return NextResponse.json({ error: "Khong the tai du lieu sheet", details: error }, { status: 500 })
+        const errorText = await dataRes.text()
+        console.error("Google Sheets API error:", errorText)
+        
+        if (errorText.includes("API key not valid") || errorText.includes("API_KEY_INVALID")) {
+          return NextResponse.json({ 
+            error: "API Key khong hop le. Vui long cap nhat API Key moi trong Cai dat.", 
+            details: errorText 
+          }, { status: 400 })
+        }
+        
+        return NextResponse.json({ error: "Khong the tai du lieu sheet", details: errorText }, { status: 500 })
       }
 
       const data = await dataRes.json()

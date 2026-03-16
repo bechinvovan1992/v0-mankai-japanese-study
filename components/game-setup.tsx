@@ -38,7 +38,10 @@ import {
   Swords,
   HelpCircle,
   Timer,
+  AlertCircle,
+  Settings,
 } from "lucide-react"
+import Link from "next/link"
 import {
   Dialog,
   DialogContent,
@@ -88,6 +91,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
   const [editingPlayer, setEditingPlayer] = useState<{ id: string; name: string } | null>(null)
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [bulkNames, setBulkNames] = useState("")
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null)
 
   // Filter sheet names by search
   const filteredSheetNames = sheetNames.filter(name =>
@@ -101,14 +105,20 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
 
   const loadSheetNames = async () => {
     setIsLoadingSheets(true)
+    setApiKeyError(null)
     try {
       const apiKey = settings.googleApiKey
       const res = await fetch(`/api/google-sheets?action=getSheets&apiKey=${encodeURIComponent(apiKey)}`)
       const data = await res.json()
       if (data.sheets) {
         setSheetNames(data.sheets)
+        setApiKeyError(null)
       } else if (data.error) {
-        toast.error(data.error)
+        if (data.error.includes("API key") || data.error.includes("API_KEY")) {
+          setApiKeyError("API Key khong hop le hoac da het han. Vui long vao Cai dat de cap nhat API Key moi.")
+        } else {
+          toast.error(data.error)
+        }
       }
     } catch (error) {
       console.error("Error loading sheets:", error)
@@ -277,6 +287,24 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                   {isLoadingSheets ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                  ) : apiKeyError ? (
+                    <div className="p-4 text-sm">
+                      <div className="bg-destructive/10 text-destructive rounded-lg p-4 mb-3">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium mb-1">Loi API Key</p>
+                            <p className="text-xs opacity-80">{apiKeyError}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <Link href="/settings">
+                        <Button variant="outline" className="w-full">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Di den Cai dat
+                        </Button>
+                      </Link>
                     </div>
                   ) : filteredSheetNames.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground text-sm px-4">
