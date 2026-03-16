@@ -21,16 +21,16 @@ export default function GamePage() {
     }
     startBgMusic()
     setShowGame(true)
-    toast.success("Bat dau tro choi!")
+    toast.success("Bắt đầu trò chơi!")
   }
 
   // If game is in progress, show game board
   if (gameRound || showGame) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-background">
         <Navigation />
-        <main className="md:ml-64 pt-16 md:pt-0">
-          <div className="p-4 md:p-8">
+        <main className="md:ml-64 pt-14 pb-20 md:pt-0 md:pb-0">
+          <div className="p-3 md:p-8">
             <GameBoard />
           </div>
         </main>
@@ -39,14 +39,14 @@ export default function GamePage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Navigation />
-      <main className="md:ml-64 pt-16 md:pt-0">
-        <div className="p-4 md:p-8">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold">Tro choi</h1>
-            <p className="text-muted-foreground">
-              Chon du lieu, them nguoi choi va bat dau choi
+      <main className="md:ml-64 pt-14 pb-20 md:pt-0 md:pb-0">
+        <div className="p-3 md:p-8">
+          <div className="mb-4 md:mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold">Trò chơi</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
+              Chọn dữ liệu, thêm người chơi và bắt đầu chơi
             </p>
           </div>
           <GameSetup onStartGame={handleStartGame} />

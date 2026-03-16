@@ -5,9 +5,9 @@ import { DashboardStats } from "@/components/dashboard-stats"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Navigation />
-      <main className="md:ml-64 pt-16 md:pt-0">
+      <main className="md:ml-64 pt-14 pb-20 md:pt-0 md:pb-0">
         <div className="p-4 md:p-8">
           <DashboardStats />
         </div>

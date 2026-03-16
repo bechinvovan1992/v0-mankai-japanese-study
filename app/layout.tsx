@@ -8,7 +8,7 @@ const _nunito = Nunito({ subsets: ["latin", "vietnamese"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Mankai - Ôn Tập Tiếng Nhật',
+  title: 'Học Từ vựng - Ôn Tập Tiếng Nhật',
   description: 'Ứng dụng học tiếng Nhật thông qua trò chơi và thẻ flashcard',
   generator: 'v0.app',
   icons: {

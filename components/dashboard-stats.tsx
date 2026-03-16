@@ -80,41 +80,41 @@ export function DashboardStats() {
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Welcome Banner */}
       <Card className="border-0 bg-gradient-fun text-primary-foreground overflow-hidden relative">
-        <CardContent className="p-6 md:p-8">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center">
-              <Sparkles className="w-8 h-8" />
+        <CardContent className="p-4 md:p-8">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+              <Sparkles className="w-6 h-6 md:w-8 md:h-8" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">Chào mừng bạn!</h2>
-              <p className="text-primary-foreground/80">
+              <h2 className="text-xl md:text-2xl font-bold">Chào mừng bạn!</h2>
+              <p className="text-sm md:text-base text-primary-foreground/80">
                 Sẵn sàng chinh phục tiếng Nhật nào!
               </p>
             </div>
           </div>
           <div className="absolute -right-4 -bottom-4 opacity-20">
-            <Star className="w-32 h-32" />
+            <Star className="w-24 h-24 md:w-32 md:h-32" />
           </div>
         </CardContent>
       </Card>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
             <Card key={stat.title} className="border-border/50 hover:shadow-lg transition-shadow">
-              <CardContent className="p-5">
-                <div className="flex flex-col gap-3">
-                  <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
-                    <Icon className={`w-6 h-6 ${stat.color}`} />
+              <CardContent className="p-3 md:p-5">
+                <div className="flex flex-col gap-2 md:gap-3">
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl ${stat.bgColor} flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 md:w-6 md:h-6 ${stat.color}`} />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold">{stat.value}</p>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
+                    <p className="text-2xl md:text-3xl font-bold">{stat.value}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">{stat.title}</p>
                   </div>
                 </div>
               </CardContent>
@@ -125,24 +125,24 @@ export function DashboardStats() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
+        <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-primary" />
           Bắt đầu nhanh
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-3 lg:grid-cols-4 md:gap-4">
           {quickActions.map((action) => {
             const Icon = action.icon
             return (
               <Link key={action.href} href={action.href}>
-                <Card className="border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group h-full">
-                  <CardContent className="p-5">
-                    <div className="flex flex-col gap-3">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
+                <Card className="border-border/50 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group h-full active:scale-95">
+                  <CardContent className="p-3 md:p-5">
+                    <div className="flex flex-col items-center md:items-start gap-2 md:gap-3">
+                      <div className={`w-12 h-12 md:w-12 md:h-12 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
                         <Icon className="w-6 h-6 text-white" />
                       </div>
-                      <div>
-                        <h3 className="font-bold">{action.title}</h3>
-                        <p className="text-sm text-muted-foreground">
+                      <div className="text-center md:text-left">
+                        <h3 className="font-bold text-sm md:text-base">{action.title}</h3>
+                        <p className="text-xs text-muted-foreground hidden md:block">
                           {action.description}
                         </p>
                       </div>
