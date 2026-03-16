@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { useAppStore } from "@/lib/store"
 import type { Dataset, Question } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -50,6 +51,7 @@ interface ParsedSimpleQuestion {
 type CsvFormat = "full" | "simple"
 
 export function ImportCsvPanel() {
+  const router = useRouter()
   const { addDatasetAndSave } = useAppStore()
   const [file, setFile] = useState<File | null>(null)
   const [parsedData, setParsedData] = useState<ParsedQuestion[]>([])
@@ -267,6 +269,11 @@ export function ImportCsvPanel() {
     await addDatasetAndSave(dataset)
     toast.success(`Đã nhập ${questions.length} câu hỏi và lưu vào server!`)
     setStep("success")
+    
+    // Auto redirect to datasets page after 2 seconds
+    setTimeout(() => {
+      router.push("/datasets")
+    }, 2000)
   }
 
   const resetForm = () => {

@@ -48,6 +48,7 @@ export function FlashcardPlayer() {
     setFlashcardFilter,
     setFlashcardMode,
     loadFlashcards,
+    loadDatasetsFromServer,
     nextFlashcard,
     prevFlashcard,
     shuffleFlashcards,
@@ -77,10 +78,15 @@ export function FlashcardPlayer() {
   const currentCard = flashcardQuestions[currentFlashcardIndex]
   const isWrongCard = currentCard ? wrongAnswerIds.includes(currentCard.id) : false
 
+  // Load datasets from server on mount
+  useEffect(() => {
+    loadDatasetsFromServer()
+  }, [loadDatasetsFromServer])
+
   // Load flashcards when filter or selection changes
   useEffect(() => {
     loadFlashcards()
-  }, [flashcardFilter, selectedDatasetIds, loadFlashcards])
+  }, [flashcardFilter, selectedDatasetIds, datasets, loadFlashcards])
 
   // Reset flip and showAnswer when card changes
   useEffect(() => {

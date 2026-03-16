@@ -82,7 +82,13 @@ export function GameBoard() {
     nextTeam,
     addTeamScore,
     resetAllSelectedPlayed,
+    loadDatasetsFromServer,
   } = useAppStore()
+
+  // Load datasets from server on mount
+  useEffect(() => {
+    loadDatasetsFromServer()
+  }, [loadDatasetsFromServer])
 
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
   const [showAnswer, setShowAnswer] = useState(false)
@@ -707,8 +713,16 @@ export function GameBoard() {
             </div>
           )}
 
-          {/* Answers for other modes */}
-          {gameRound?.gameMode !== "truefalse" && (
+          {/* Guess Mode - Only show correct answer after reveal */}
+          {gameRound?.gameMode === "guess" && showAnswer && (
+            <div className="p-6 bg-success/10 rounded-xl border-2 border-success/30 text-center">
+              <p className="text-sm text-muted-foreground mb-2">Dap an dung:</p>
+              <p className="text-2xl font-bold text-success">{selectedQuestion?.correct}</p>
+            </div>
+          )}
+
+          {/* Answers for other modes (not guess mode) */}
+          {gameRound?.gameMode !== "truefalse" && gameRound?.gameMode !== "guess" && (
             <div className="space-y-3">
               {selectedQuestion?.answers.map((answer, index) => {
                 const isCorrect = answer === selectedQuestion.correct
@@ -727,7 +741,7 @@ export function GameBoard() {
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-secondary mr-3 text-sm font-bold">
                         {["A", "B", "C", "D"][index]}
                       </span>
-                      <span className="text-muted-foreground">Đang ẩn...</span>
+                      <span className="text-muted-foreground">Dang an...</span>
                     </div>
                   )
                 }
@@ -742,17 +756,13 @@ export function GameBoard() {
                         handleMultipleChoiceSelect(index)
                       }
                     }}
-                    disabled={
-                      showAnswer || 
-                      isEliminated ||
-                      (gameRound?.gameMode === "guess")
-                    }
+                    disabled={showAnswer || isEliminated}
                     className={cn(
                       "w-full p-4 rounded-xl border-2 transition-all text-left",
                       isEliminated && "opacity-30 line-through",
                       showAsCorrect && "border-success bg-success/20",
                       showAsWrong && "border-destructive bg-destructive/20",
-                      !showAnswer && !isEliminated && gameRound?.gameMode !== "guess" && "hover:border-primary hover:bg-primary/5 cursor-pointer",
+                      !showAnswer && !isEliminated && "hover:border-primary hover:bg-primary/5 cursor-pointer",
                       !showAnswer && !isEliminated && "border-border/50"
                     )}
                   >
