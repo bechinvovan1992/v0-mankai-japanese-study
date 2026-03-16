@@ -1,13 +1,11 @@
 "use client"
 
-import { useState } from "react"
 import { useAppStore } from "@/lib/store"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
-import { Input } from "@/components/ui/input"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,119 +27,48 @@ import {
   Palette,
   Zap,
   FileSpreadsheet,
-  ExternalLink,
-  RefreshCw,
   CheckCircle,
 } from "lucide-react"
 import { toast } from "sonner"
 
 export function SettingsPanel() {
-  const { settings, updateSettings, resetAllData, loadDatasetsFromGoogleSheet, isLoadingFromGoogleSheet } = useAppStore()
-  const [tempGoogleSheetUrl, setTempGoogleSheetUrl] = useState(settings.googleSheetUrl || "")
+  const { settings, updateSettings, resetAllData } = useAppStore()
 
   const handleDarkModeToggle = (checked: boolean) => {
     updateSettings({ darkMode: checked })
     document.documentElement.classList.toggle("dark", checked)
-    toast.success(`Đã bật chế độ ${checked ? "tối" : "sáng"}`)
+    toast.success(`Da bat che do ${checked ? "toi" : "sang"}`)
   }
 
   const handleResetData = () => {
     resetAllData()
-    toast.success("Đã xóa tất cả dữ liệu")
-  }
-
-  const handleSaveGoogleSheetUrl = async () => {
-    updateSettings({ googleSheetUrl: tempGoogleSheetUrl })
-    toast.success("Đã lưu liên kết Google Sheet")
-    
-    if (tempGoogleSheetUrl) {
-      // Auto load data after saving
-      await loadDatasetsFromGoogleSheet()
-      toast.success("Đã tải dữ liệu từ Google Sheet")
-    }
-  }
-
-  const handleRefreshGoogleSheet = async () => {
-    if (!settings.googleSheetUrl) {
-      toast.error("Vui lòng nhập liên kết Google Sheet trước")
-      return
-    }
-    await loadDatasetsFromGoogleSheet()
-    toast.success("Đã tải lại dữ liệu từ Google Sheet")
+    toast.success("Da xoa tat ca du lieu")
   }
 
   return (
     <div className="space-y-6">
-      {/* Google Sheet Configuration */}
+      {/* Google Sheet Info - Hardcoded */}
       <Card className="border-primary/30 bg-primary/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <FileSpreadsheet className="w-5 h-5" />
-            Cấu hình Google Sheet
+            Google Sheet
           </CardTitle>
           <CardDescription>
-            Kết nối với Google Sheet để tải dữ liệu câu hỏi tự động
+            Du lieu duoc tai tu Google Sheet da cau hinh san
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-4 bg-secondary/50 rounded-xl space-y-4">
-            <div>
-              <Label className="text-base font-medium mb-2 block">Liên kết Google Sheet</Label>
-              <p className="text-sm text-muted-foreground mb-3">
-                Dán liên kết Google Sheet đã được chia sẻ công khai. Mỗi sheet sẽ trở thành một bộ dữ liệu.
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  value={tempGoogleSheetUrl}
-                  onChange={(e) => setTempGoogleSheetUrl(e.target.value)}
-                  className="flex-1"
-                />
-                <Button onClick={handleSaveGoogleSheetUrl} disabled={isLoadingFromGoogleSheet}>
-                  {isLoadingFromGoogleSheet ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CheckCircle className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {settings.googleSheetUrl && (
-              <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/30">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-success" />
-                  <span className="text-sm text-success font-medium">Đã kết nối Google Sheet</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(settings.googleSheetUrl, '_blank')}
-                  >
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    Mở
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRefreshGoogleSheet}
-                    disabled={isLoadingFromGoogleSheet}
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-1 ${isLoadingFromGoogleSheet ? "animate-spin" : ""}`} />
-                    Tải lại
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-sm font-medium mb-2">Định dạng dữ liệu:</p>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p><strong>Đầy đủ (8 cột):</strong> type | question | answer1 | answer2 | answer3 | answer4 | correct | explain</p>
-                <p><strong>Đơn giản (3 cột):</strong> type | question | answer</p>
-                <p className="mt-2"><em>type: 1 = Ngữ pháp, 2 = Từ vựng</em></p>
-              </div>
+        <CardContent>
+          <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg border border-success/30">
+            <CheckCircle className="w-4 h-4 text-success" />
+            <span className="text-sm text-success font-medium">Da ket noi Google Sheet</span>
+          </div>
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <p className="text-sm font-medium mb-2">Dinh dang du lieu:</p>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p><strong>Day du (8 cot):</strong> type | question | answer1 | answer2 | answer3 | answer4 | correct | explain</p>
+              <p><strong>Don gian (3 cot):</strong> type | question | answer</p>
+              <p className="mt-2"><em>type: 1 = Ngu phap, 2 = Tu vung</em></p>
             </div>
           </div>
         </CardContent>
@@ -152,10 +79,10 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Palette className="w-5 h-5 text-primary" />
-            Giao diện
+            Giao dien
           </CardTitle>
           <CardDescription>
-            Tùy chỉnh giao diện ứng dụng theo ý thích của bạn
+            Tuy chinh giao dien ung dung theo y thich cua ban
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -170,9 +97,9 @@ export function SettingsPanel() {
                 )}
               </div>
               <div>
-                <Label className="text-base font-medium">Chế độ tối</Label>
+                <Label className="text-base font-medium">Che do toi</Label>
                 <p className="text-sm text-muted-foreground">
-                  Bật/tắt giao diện tối
+                  Bat/tat giao dien toi
                 </p>
               </div>
             </div>
@@ -189,9 +116,9 @@ export function SettingsPanel() {
                 <Zap className="w-6 h-6 text-chart-1" />
               </div>
               <div>
-                <Label className="text-base font-medium">Hiệu ứng</Label>
+                <Label className="text-base font-medium">Hieu ung</Label>
                 <p className="text-sm text-muted-foreground">
-                  Bật/tắt hiệu ứng chuyển động
+                  Bat/tat hieu ung chuyen dong
                 </p>
               </div>
             </div>
@@ -210,9 +137,9 @@ export function SettingsPanel() {
                 <Volume2 className="w-6 h-6 text-chart-2" />
               </div>
               <div>
-                <Label className="text-base font-medium">Âm thanh</Label>
+                <Label className="text-base font-medium">Am thanh</Label>
                 <p className="text-sm text-muted-foreground">
-                  Bật/tắt hiệu ứng âm thanh
+                  Bat/tat hieu ung am thanh
                 </p>
               </div>
             </div>
@@ -231,18 +158,18 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Grid className="w-5 h-5 text-primary" />
-            Cài đặt trò chơi
+            Cai dat tro choi
           </CardTitle>
           <CardDescription>
-            Tùy chỉnh bảng game và cách chơi
+            Tuy chinh bang game va cach choi
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Board Columns */}
           <div className="p-4 bg-secondary/50 rounded-xl">
             <div className="flex items-center justify-between mb-4">
-              <Label className="text-base font-medium">Số cột bảng: {settings.boardColumns}</Label>
-              <span className="text-sm text-muted-foreground">{settings.boardColumns} cột</span>
+              <Label className="text-base font-medium">So cot bang: {settings.boardColumns}</Label>
+              <span className="text-sm text-muted-foreground">{settings.boardColumns} cot</span>
             </div>
             <Slider
               value={[settings.boardColumns]}
@@ -252,7 +179,7 @@ export function SettingsPanel() {
               step={1}
             />
             <p className="text-sm text-muted-foreground mt-3">
-              Số cột hiển thị trong bảng game (2-8 cột)
+              So cot hien thi trong bang game (2-8 cot)
             </p>
           </div>
         </CardContent>
@@ -263,18 +190,18 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" />
-            Cài đặt Flashcard
+            Cai dat Flashcard
           </CardTitle>
           <CardDescription>
-            Tùy chỉnh thời gian phát tự động
+            Tuy chinh thoi gian phat tu dong
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Front Time */}
           <div className="p-4 bg-secondary/50 rounded-xl">
             <div className="flex items-center justify-between mb-4">
-              <Label className="text-base font-medium">Mặt trước</Label>
-              <span className="text-sm text-muted-foreground">{settings.autoPlayFrontTime} giây</span>
+              <Label className="text-base font-medium">Mat truoc</Label>
+              <span className="text-sm text-muted-foreground">{settings.autoPlayFrontTime} giay</span>
             </div>
             <Slider
               value={[settings.autoPlayFrontTime]}
@@ -290,8 +217,8 @@ export function SettingsPanel() {
           {/* Back Time */}
           <div className="p-4 bg-secondary/50 rounded-xl">
             <div className="flex items-center justify-between mb-4">
-              <Label className="text-base font-medium">Mặt sau</Label>
-              <span className="text-sm text-muted-foreground">{settings.autoPlayBackTime} giây</span>
+              <Label className="text-base font-medium">Mat sau</Label>
+              <span className="text-sm text-muted-foreground">{settings.autoPlayBackTime} giay</span>
             </div>
             <Slider
               value={[settings.autoPlayBackTime]}
@@ -311,10 +238,10 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
             <Trash2 className="w-5 h-5" />
-            Quản lý dữ liệu
+            Quan ly du lieu
           </CardTitle>
           <CardDescription>
-            Xóa tất cả dữ liệu ứng dụng (không thể hoàn tác)
+            Xoa tat ca du lieu ung dung (khong the hoan tac)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -322,24 +249,24 @@ export function SettingsPanel() {
             <AlertDialogTrigger asChild>
               <Button variant="destructive" className="w-full sm:w-auto">
                 <Trash2 className="w-4 h-4 mr-2" />
-                Xóa tất cả dữ liệu
+                Xoa tat ca du lieu
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Bạn có chắc chắn?</AlertDialogTitle>
+                <AlertDialogTitle>Ban co chac chan?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Thao tác này sẽ xóa tất cả bộ dữ liệu, người chơi, lịch sử chơi, và đặt lại tất cả cài đặt về mặc định. 
-                  Hành động này không thể hoàn tác.
+                  Thao tac nay se xoa tat ca bo du lieu, nguoi choi, lich su choi, va dat lai tat ca cai dat ve mac dinh. 
+                  Hanh dong nay khong the hoan tac.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                <AlertDialogCancel>Huy</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleResetData}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Xóa tất cả
+                  Xoa tat ca
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

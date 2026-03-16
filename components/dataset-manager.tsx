@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Dialog,
   DialogContent,
@@ -34,10 +35,10 @@ import {
   FolderOpen,
   FileSpreadsheet,
   RefreshCw,
-  Settings,
+  Loader2,
 } from "lucide-react"
 import { toast } from "sonner"
-import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 export function DatasetManager() {
   const {
@@ -48,38 +49,102 @@ export function DatasetManager() {
     selectAllDatasets,
     deselectAllDatasets,
     resetDatasetPlayed,
-    loadDatasetsFromGoogleSheet,
-    isLoadingFromGoogleSheet,
-    settings,
     removeDataset,
+    addDataset,
   } = useAppStore()
 
   const [previewDataset, setPreviewDataset] = useState<Dataset | null>(null)
+  const [sheetNames, setSheetNames] = useState<string[]>([])
+  const [selectedSheet, setSelectedSheet] = useState<string | null>(null)
+  const [isLoadingSheets, setIsLoadingSheets] = useState(false)
+  const [isLoadingSheetData, setIsLoadingSheetData] = useState(false)
 
-  // Load datasets from Google Sheet on mount if URL is set
+  // Load sheet names on mount
   useEffect(() => {
-    if (settings.googleSheetUrl) {
-      loadDatasetsFromGoogleSheet()
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    loadSheetNames()
+  }, [])
 
-  const handleRefreshData = async () => {
-    if (!settings.googleSheetUrl) {
-      toast.error("Vui lòng cấu hình liên kết Google Sheet trong Cài đặt")
-      return
+  const loadSheetNames = async () => {
+    setIsLoadingSheets(true)
+    try {
+      const res = await fetch("/api/google-sheets?action=getSheets")
+      const data = await res.json()
+      if (data.sheets) {
+        setSheetNames(data.sheets)
+        toast.success(`Da tai ${data.sheets.length} sheet`)
+      } else if (data.error) {
+        toast.error(data.error)
+      }
+    } catch (error) {
+      console.error("Error loading sheets:", error)
+      toast.error("Khong the tai danh sach sheet")
+    } finally {
+      setIsLoadingSheets(false)
     }
-    await loadDatasetsFromGoogleSheet()
-    toast.success("Đã tải lại dữ liệu từ Google Sheet")
+  }
+
+  const loadSheetData = async (sheetName: string) => {
+    setSelectedSheet(sheetName)
+    setIsLoadingSheetData(true)
+    try {
+      const res = await fetch(`/api/google-sheets?action=getSheetData&sheet=${encodeURIComponent(sheetName)}`)
+      const data = await res.json()
+      if (data.dataset) {
+        // Check if dataset already exists
+        const existingIndex = datasets.findIndex(d => d.fileName === sheetName)
+        if (existingIndex === -1) {
+          addDataset(data.dataset)
+          toast.success(`Da tai ${data.dataset.questions?.length || 0} cau hoi tu "${sheetName}"`)
+        } else {
+          // Update existing dataset
+          removeDataset(datasets[existingIndex].id)
+          addDataset(data.dataset)
+          toast.success(`Da cap nhat "${sheetName}" voi ${data.dataset.questions?.length || 0} cau hoi`)
+        }
+      } else if (data.error) {
+        toast.error(data.error)
+      }
+    } catch (error) {
+      console.error("Error loading sheet data:", error)
+      toast.error("Khong the tai du lieu sheet")
+    } finally {
+      setIsLoadingSheetData(false)
+    }
+  }
+
+  const loadAllSheets = async () => {
+    setIsLoadingSheetData(true)
+    try {
+      const res = await fetch("/api/google-sheets")
+      const data = await res.json()
+      if (data.datasets && data.datasets.length > 0) {
+        // Clear existing and add new
+        for (const ds of datasets) {
+          removeDataset(ds.id)
+        }
+        for (const ds of data.datasets) {
+          addDataset(ds)
+        }
+        toast.success(`Da tai ${data.datasets.length} bo du lieu`)
+      } else {
+        toast.info("Khong co du lieu de tai")
+      }
+    } catch (error) {
+      console.error("Error loading all sheets:", error)
+      toast.error("Khong the tai du lieu")
+    } finally {
+      setIsLoadingSheetData(false)
+    }
   }
 
   const handleDelete = (id: string) => {
     removeDataset(id)
-    toast.success("Đã xóa bộ dữ liệu")
+    toast.success("Da xoa bo du lieu")
   }
 
   const handleReset = (id: string) => {
     resetDatasetPlayed(id)
-    toast.success("Đã đặt lại trạng thái")
+    toast.success("Da dat lai trang thai")
   }
 
   const handleToggleSelect = (id: string) => {
@@ -103,207 +168,239 @@ export function DatasetManager() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Actions Bar */}
-      <div className="flex flex-wrap items-center gap-4">
-        <Button 
-          onClick={handleRefreshData}
-          disabled={isLoadingFromGoogleSheet}
-          className="bg-gradient-fun hover:opacity-90"
-        >
-          {isLoadingFromGoogleSheet ? (
-            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <FileSpreadsheet className="w-4 h-4 mr-2" />
-          )}
-          {isLoadingFromGoogleSheet ? "Đang tải..." : "Tải từ Google Sheet"}
-        </Button>
-        
-        {!settings.googleSheetUrl && (
-          <Link href="/settings">
-            <Button variant="outline">
-              <Settings className="w-4 h-4 mr-2" />
-              Cấu hình Google Sheet
+    <div className="flex gap-6 h-[calc(100vh-200px)] min-h-[500px]">
+      {/* Left Sidebar - Sheet Names */}
+      <Card className="w-64 shrink-0 flex flex-col">
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-sm flex items-center gap-2">
+              <FileSpreadsheet className="w-4 h-4 text-primary" />
+              Google Sheets
+            </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={loadSheetNames}
+              disabled={isLoadingSheets}
+              className="h-8 w-8"
+            >
+              {isLoadingSheets ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
             </Button>
-          </Link>
-        )}
-        
-        <div className="flex items-center gap-2 ml-auto">
+          </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            onClick={allSelected ? deselectAllDatasets : selectAllDatasets}
+            onClick={loadAllSheets}
+            disabled={isLoadingSheetData || sheetNames.length === 0}
+            className="w-full"
           >
-            {allSelected ? (
-              <>
-                <Square className="w-4 h-4 mr-1" />
-                Bỏ chọn tất cả
-              </>
+            {isLoadingSheetData ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <>
-                <CheckSquare className="w-4 h-4 mr-1" />
-                Chọn tất cả
-              </>
+              <Sparkles className="w-4 h-4 mr-2" />
             )}
+            Tai tat ca
           </Button>
         </div>
-      </div>
-
-      {/* Google Sheet Info */}
-      {settings.googleSheetUrl && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="py-3 px-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4 text-primary" />
-                Đã kết nối Google Sheet
-              </span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => window.open(settings.googleSheetUrl, '_blank')}
-              >
-                Mở Sheet
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Selection Info */}
-      {selectedDatasetIds.length > 0 && (
-        <Card className="border-chart-3/50 bg-chart-3/10">
-          <CardContent className="py-3 px-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-chart-3" />
-                <strong>{selectedDatasetIds.length}</strong> bộ dữ liệu đã chọn cho game/flashcard
-              </span>
-              <Button variant="ghost" size="sm" onClick={deselectAllDatasets}>
-                Xóa lựa chọn
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Dataset List */}
-      {datasets.length === 0 ? (
-        <Card className="border-border/50 border-2 border-dashed">
-          <CardContent className="py-12 text-center">
-            <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
-              <FolderOpen className="w-10 h-10 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-bold mb-2">Chưa có bộ dữ liệu</h3>
-            <p className="text-muted-foreground mb-6">
-              {settings.googleSheetUrl 
-                ? "Nhấn nút 'Tải từ Google Sheet' để tải dữ liệu."
-                : "Vui lòng cấu hình liên kết Google Sheet trong Cài đặt."}
-            </p>
-            {settings.googleSheetUrl ? (
-              <Button onClick={handleRefreshData} className="bg-gradient-fun hover:opacity-90">
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Tải từ Google Sheet
-              </Button>
+        
+        <ScrollArea className="flex-1">
+          <div className="p-2">
+            {isLoadingSheets ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : sheetNames.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                <FolderOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                Chua co sheet nao
+              </div>
             ) : (
-              <Link href="/settings">
-                <Button className="bg-gradient-fun hover:opacity-90">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Cấu hình Google Sheet
-                </Button>
-              </Link>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {datasets.map((dataset) => {
-            const isSelected = selectedDatasetIds.includes(dataset.id)
-            const playedCount = dataset.questions.filter((q) => q.played).length
-            const playedPercent = Math.round((playedCount / dataset.totalQuestions) * 100)
-
-            return (
-              <Card
-                key={dataset.id}
-                className={`border-border/50 transition-all hover:shadow-lg ${
-                  isSelected ? "border-primary ring-2 ring-primary/20 bg-primary/5" : ""
-                }`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => handleToggleSelect(dataset.id)}
-                      className="mt-1"
-                    />
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {dataset.type === 1 ? (
-                          <div className="w-8 h-8 rounded-lg bg-chart-3/20 flex items-center justify-center">
-                            <BookOpen className="w-4 h-4 text-chart-3" />
-                          </div>
-                        ) : (
-                          <div className="w-8 h-8 rounded-lg bg-chart-4/20 flex items-center justify-center">
-                            <Languages className="w-4 h-4 text-chart-4" />
-                          </div>
+              <div className="space-y-1">
+                {sheetNames.map((name) => {
+                  const isLoaded = datasets.some(d => d.fileName === name)
+                  const isActive = selectedSheet === name
+                  
+                  return (
+                    <button
+                      key={name}
+                      onClick={() => loadSheetData(name)}
+                      disabled={isLoadingSheetData}
+                      className={cn(
+                        "w-full text-left px-3 py-2 rounded-lg text-sm transition-all",
+                        "hover:bg-primary/10 hover:text-primary",
+                        isActive && "bg-primary/20 text-primary font-medium",
+                        isLoaded && "border-l-2 border-primary"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="truncate">{name}</span>
+                        {isLoaded && (
+                          <Badge variant="secondary" className="text-xs ml-2 shrink-0">
+                            Da tai
+                          </Badge>
                         )}
-                        <h3 className="font-bold truncate">{dataset.fileName}</h3>
-                        <Badge variant={dataset.type === 1 ? "default" : "secondary"} className="shrink-0">
-                          {dataset.type === 1 ? "Ngữ pháp" : "Từ vựng"}
-                        </Badge>
                       </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </Card>
 
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                        <span>{dataset.totalQuestions} câu hỏi</span>
-                        <span>{formatDate(dataset.createdAt)}</span>
-                        <span>
-                          {playedCount}/{dataset.totalQuestions} đã chơi ({playedPercent}%)
-                        </span>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="mt-3 h-2 bg-secondary rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-fun transition-all"
-                          style={{ width: `${playedPercent}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setPreviewDataset(dataset)}
-                        className="hover:bg-primary/10"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleReset(dataset.id)}
-                        className="hover:bg-warning/10"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(dataset.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+      {/* Right Content - Dataset List */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Actions Bar */}
+        <div className="flex flex-wrap items-center gap-4 mb-4">
+          {selectedDatasetIds.length > 0 && (
+            <Card className="border-chart-3/50 bg-chart-3/10 flex-1">
+              <CardContent className="py-2 px-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-chart-3" />
+                    <strong>{selectedDatasetIds.length}</strong> bo du lieu da chon
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={deselectAllDatasets}>
+                    Xoa lua chon
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={allSelected ? deselectAllDatasets : selectAllDatasets}
+              disabled={datasets.length === 0}
+            >
+              {allSelected ? (
+                <>
+                  <Square className="w-4 h-4 mr-1" />
+                  Bo chon tat ca
+                </>
+              ) : (
+                <>
+                  <CheckSquare className="w-4 h-4 mr-1" />
+                  Chon tat ca
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-      )}
+
+        {/* Dataset List */}
+        <ScrollArea className="flex-1">
+          {datasets.length === 0 ? (
+            <Card className="border-border/50 border-2 border-dashed">
+              <CardContent className="py-12 text-center">
+                <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
+                  <FolderOpen className="w-10 h-10 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Chua co bo du lieu</h3>
+                <p className="text-muted-foreground mb-6">
+                  Chon mot sheet tu danh sach ben trai de tai du lieu
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 pr-2">
+              {datasets.map((dataset) => {
+                const isSelected = selectedDatasetIds.includes(dataset.id)
+                const playedCount = dataset.questions.filter((q) => q.played).length
+                const playedPercent = Math.round((playedCount / dataset.totalQuestions) * 100)
+
+                return (
+                  <Card
+                    key={dataset.id}
+                    className={cn(
+                      "border-border/50 transition-all hover:shadow-lg",
+                      isSelected && "border-primary ring-2 ring-primary/20 bg-primary/5"
+                    )}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handleToggleSelect(dataset.id)}
+                          className="mt-1"
+                        />
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            {dataset.type === 1 ? (
+                              <div className="w-8 h-8 rounded-lg bg-chart-3/20 flex items-center justify-center">
+                                <BookOpen className="w-4 h-4 text-chart-3" />
+                              </div>
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-chart-4/20 flex items-center justify-center">
+                                <Languages className="w-4 h-4 text-chart-4" />
+                              </div>
+                            )}
+                            <h3 className="font-bold truncate">{dataset.fileName}</h3>
+                            <Badge variant={dataset.type === 1 ? "default" : "secondary"} className="shrink-0">
+                              {dataset.type === 1 ? "Ngu phap" : "Tu vung"}
+                            </Badge>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                            <span>{dataset.totalQuestions} cau hoi</span>
+                            <span>{formatDate(dataset.createdAt)}</span>
+                            <span>
+                              {playedCount}/{dataset.totalQuestions} da choi ({playedPercent}%)
+                            </span>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <div className="mt-3 h-2 bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-fun transition-all"
+                              style={{ width: `${playedPercent}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setPreviewDataset(dataset)}
+                            className="hover:bg-primary/10"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleReset(dataset.id)}
+                            className="hover:bg-warning/10"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(dataset.id)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
 
       {/* Preview Dialog */}
       <Dialog open={!!previewDataset} onOpenChange={() => setPreviewDataset(null)}>
@@ -314,8 +411,8 @@ export function DatasetManager() {
               {previewDataset?.fileName}
             </DialogTitle>
             <DialogDescription>
-              {previewDataset?.totalQuestions} câu hỏi -{" "}
-              {previewDataset?.type === 1 ? "Ngữ pháp" : "Từ vựng"}
+              {previewDataset?.totalQuestions} cau hoi -{" "}
+              {previewDataset?.type === 1 ? "Ngu phap" : "Tu vung"}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto">
@@ -323,9 +420,9 @@ export function DatasetManager() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
-                  <TableHead>Câu hỏi</TableHead>
-                  <TableHead>Đáp án đúng</TableHead>
-                  <TableHead className="w-24">Đã chơi</TableHead>
+                  <TableHead>Cau hoi</TableHead>
+                  <TableHead>Dap an dung</TableHead>
+                  <TableHead className="w-24">Da choi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -338,7 +435,7 @@ export function DatasetManager() {
                     <TableCell>{q.correct}</TableCell>
                     <TableCell>
                       <Badge variant={q.played ? "default" : "outline"}>
-                        {q.played ? "Rồi" : "Chưa"}
+                        {q.played ? "Roi" : "Chua"}
                       </Badge>
                     </TableCell>
                   </TableRow>

@@ -1,302 +1,226 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import type { Dataset, Question } from "@/lib/types"
 
-// Extract spreadsheet ID from various Google Sheets URL formats
-function extractSpreadsheetId(url: string): string | null {
-  // Handle /d/ID format
-  const dMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/)
-  if (dMatch) return dMatch[1]
-  
-  // Handle key=ID format
-  const keyMatch = url.match(/[?&]key=([a-zA-Z0-9-_]+)/)
-  if (keyMatch) return keyMatch[1]
-  
-  // Handle direct ID (if just the ID is provided)
-  if (/^[a-zA-Z0-9-_]+$/.test(url)) return url
-  
-  return null
+// Hardcoded configuration
+const SPREADSHEET_ID = "1D3CHYhGkmlsE1a10DgS6l_qyYU"
+const API_KEY = "AIzaSyB7X_P9Bj5EzGeIAbzrsR9Y9o1cm7deYDE"
+
+function generateId() {
+  return Math.random().toString(36).substring(2, 15)
 }
 
-// Get all sheet names from the spreadsheet
-async function getSheetNames(spreadsheetId: string): Promise<string[]> {
-  // First, try to get the HTML version to extract sheet names
-  const htmlUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`
-  
+// GET - Fetch sheet names or sheet data
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const action = searchParams.get("action")
+  const sheetName = searchParams.get("sheet")
+
   try {
-    // Use the export feature to get sheet list
-    const response = await fetch(
-      `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json`,
-      { cache: 'no-store' }
-    )
-    
-    if (!response.ok) {
-      // If this fails, try fetching a default sheet and return just "Sheet1"
-      return ["Sheet1"]
-    }
-    
-    const text = await response.text()
-    // The response is wrapped in google.visualization.Query.setResponse(...)
-    // We just need to check if it's valid
-    if (text.includes("table")) {
-      return ["Sheet1"] // We'll try to get more sheets differently
-    }
-    
-    return ["Sheet1"]
-  } catch {
-    return ["Sheet1"]
-  }
-}
-
-// Fetch CSV data from a specific sheet
-async function fetchSheetData(spreadsheetId: string, sheetName: string): Promise<string[][]> {
-  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`
-  
-  const response = await fetch(url, { cache: 'no-store' })
-  if (!response.ok) {
-    throw new Error(`Failed to fetch sheet: ${sheetName}`)
-  }
-  
-  const csvText = await response.text()
-  return parseCSV(csvText)
-}
-
-// Parse CSV text to 2D array
-function parseCSV(text: string): string[][] {
-  const rows: string[][] = []
-  const lines = text.split('\n')
-  
-  for (const line of lines) {
-    if (!line.trim()) continue
-    
-    const row: string[] = []
-    let current = ''
-    let inQuotes = false
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i]
+    // Action: getSheets - Fetch all sheet names from spreadsheet metadata
+    if (action === "getSheets") {
+      const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${API_KEY}&fields=sheets.properties.title`
+      const metadataRes = await fetch(metadataUrl, { cache: 'no-store' })
       
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"'
-          i++
+      if (!metadataRes.ok) {
+        const error = await metadataRes.text()
+        console.error("Google Sheets API error:", error)
+        return NextResponse.json({ error: "Khong the tai danh sach sheet", details: error }, { status: 500 })
+      }
+
+      const metadata = await metadataRes.json()
+      const sheets = metadata.sheets?.map((s: { properties: { title: string } }) => s.properties.title) || []
+
+      return NextResponse.json({ sheets })
+    }
+
+    // Action: getSheetData - Fetch data from a specific sheet
+    if (action === "getSheetData" && sheetName) {
+      const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${API_KEY}`
+      const dataRes = await fetch(dataUrl, { cache: 'no-store' })
+
+      if (!dataRes.ok) {
+        const error = await dataRes.text()
+        console.error("Google Sheets API error:", error)
+        return NextResponse.json({ error: "Khong the tai du lieu sheet", details: error }, { status: 500 })
+      }
+
+      const data = await dataRes.json()
+      const rows = data.values || []
+
+      if (rows.length < 2) {
+        return NextResponse.json({ 
+          dataset: {
+            id: generateId(),
+            fileName: sheetName,
+            createdAt: new Date().toISOString(),
+            questions: [],
+          }
+        })
+      }
+
+      // Parse header to detect format
+      const header = rows[0].map((h: string) => h?.toString().toLowerCase().trim())
+      const dataRows = rows.slice(1)
+
+      // Detect format: full (8 cols) or simple (3 cols)
+      const isFullFormat = header.includes("answer1") || header.includes("correct") || header.length >= 7
+
+      let grammarCount = 0
+      let vocabCount = 0
+
+      const questions: Question[] = dataRows.map((row: string[], index: number) => {
+        if (!row[0] || !row[1]) return null
+
+        const typeStr = row[0]?.toString().trim()
+        const type = (typeStr === '1' || typeStr.toLowerCase() === 'grammar') ? 1 : 2
+        
+        if (type === 1) grammarCount++
+        else vocabCount++
+
+        if (isFullFormat && row.length >= 7) {
+          // Full format: type, question, answer1, answer2, answer3, answer4, correct, explain
+          const question = row[1]?.trim() || ""
+          const answers = [
+            row[2]?.trim() || "", 
+            row[3]?.trim() || "", 
+            row[4]?.trim() || "", 
+            row[5]?.trim() || ""
+          ].filter(a => a)
+          const correct = row[6]?.trim() || answers[0] || ""
+          const explain = row[7]?.trim() || ""
+
+          return {
+            id: `${sheetName}-${index}-${generateId()}`,
+            type: type as 1 | 2,
+            question,
+            answers: answers.length > 0 ? answers : [correct],
+            correct,
+            explain,
+            played: false,
+          }
         } else {
-          inQuotes = !inQuotes
-        }
-      } else if (char === ',' && !inQuotes) {
-        row.push(current.trim())
-        current = ''
-      } else {
-        current += char
-      }
-    }
-    row.push(current.trim())
-    rows.push(row)
-  }
-  
-  return rows
-}
+          // Simple format: type, question, answer
+          const question = row[1]?.trim() || ""
+          const answer = row[2]?.trim() || ""
 
-// Convert sheet data to dataset
-function convertToDataset(rows: string[][], sheetName: string): Dataset | null {
-  if (rows.length < 2) return null // Need header + at least 1 data row
-  
-  const header = rows[0].map(h => h.toLowerCase().trim())
-  const dataRows = rows.slice(1)
-  
-  // Detect format based on header
-  const isFullFormat = header.includes('answer1') || header.includes('correct')
-  const isSimpleFormat = header.includes('answer') && !header.includes('answer1')
-  
-  if (!isFullFormat && !isSimpleFormat) {
-    // Try to detect by column count
-    if (header.length >= 7) {
-      // Assume full format: type, question, answer1-4, correct, explain
-    } else if (header.length >= 3) {
-      // Assume simple format: type, question, answer
-    } else {
-      return null
-    }
-  }
-  
-  const questions: Question[] = []
-  let grammarCount = 0
-  let vocabCount = 0
-  
-  for (const row of dataRows) {
-    if (row.length < 3 || !row[0] || !row[1]) continue
-    
-    const typeStr = row[0].toString().trim()
-    const type = typeStr === '1' || typeStr.toLowerCase() === 'grammar' ? 1 : 2
-    
-    if (type === 1) grammarCount++
-    else vocabCount++
-    
-    const question = row[1]?.trim() || ''
-    
-    // Full format (8 columns): type, question, answer1, answer2, answer3, answer4, correct, explain
-    if (row.length >= 7 && (isFullFormat || header.length >= 7)) {
-      const answers = [
-        row[2]?.trim() || '',
-        row[3]?.trim() || '',
-        row[4]?.trim() || '',
-        row[5]?.trim() || ''
-      ].filter(a => a !== '')
-      
-      const correct = row[6]?.trim() || answers[0] || ''
-      const explain = row[7]?.trim() || ''
-      
-      questions.push({
-        id: `${sheetName}-${questions.length + 1}`,
-        type,
-        question,
-        answers: answers.length > 0 ? answers : [correct],
-        correct,
-        explain,
-        played: false
-      })
-    }
-    // Simple format (3 columns): type, question, answer
-    else {
-      const answer = row[2]?.trim() || ''
-      
-      questions.push({
-        id: `${sheetName}-${questions.length + 1}`,
-        type,
-        question,
-        answers: [answer],
-        correct: answer,
-        explain: '',
-        played: false
-      })
-    }
-  }
-  
-  if (questions.length === 0) return null
-  
-  // Determine dataset type based on majority
-  const datasetType = grammarCount >= vocabCount ? 1 : 2
-  
-  return {
-    id: `gsheet-${sheetName}-${Date.now()}`,
-    fileName: sheetName,
-    createdAt: new Date().toISOString(),
-    type: datasetType as 1 | 2,
-    totalQuestions: questions.length,
-    questions
-  }
-}
-
-// Try to get all sheet names by fetching spreadsheet metadata
-async function getAllSheetNames(spreadsheetId: string): Promise<string[]> {
-  try {
-    // Try fetching multiple common sheet names
-    const commonNames = ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5', 
-                         'Trang tính1', 'Trang tính2', 'Trang tính3',
-                         'Data', 'Questions', 'Grammar', 'Vocabulary',
-                         'Ngữ pháp', 'Từ vựng', 'Bài 1', 'Bài 2', 'Bài 3',
-                         'Lesson1', 'Lesson2', 'Lesson3']
-    
-    const validSheets: string[] = []
-    
-    // First, try to get the actual sheet names from the HTML
-    try {
-      const metaUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit?usp=sharing`
-      const response = await fetch(metaUrl, { 
-        cache: 'no-store',
-        headers: {
-          'Accept': 'text/html'
-        }
-      })
-      
-      if (response.ok) {
-        const html = await response.text()
-        // Extract sheet names from the HTML (they're in the page)
-        const sheetNameRegex = /"sheets":\[([^\]]+)\]/
-        const match = html.match(sheetNameRegex)
-        if (match) {
-          const sheetsData = match[1]
-          const nameMatches = sheetsData.matchAll(/"name":"([^"]+)"/g)
-          for (const m of nameMatches) {
-            validSheets.push(m[1])
+          return {
+            id: `${sheetName}-${index}-${generateId()}`,
+            type: type as 1 | 2,
+            question,
+            answers: [answer],
+            correct: answer,
+            explain: "",
+            played: false,
           }
         }
-      }
-    } catch {
-      // Ignore errors
-    }
-    
-    // If we found sheets from HTML, use those
-    if (validSheets.length > 0) {
-      return validSheets
-    }
-    
-    // Otherwise, try fetching common sheet names
-    for (const name of commonNames) {
-      try {
-        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`
-        const response = await fetch(url, { cache: 'no-store' })
-        if (response.ok) {
-          const text = await response.text()
-          if (text.trim().length > 0) {
-            validSheets.push(name)
-          }
-        }
-      } catch {
-        // Sheet doesn't exist, continue
-      }
-    }
-    
-    // If no sheets found, return default
-    return validSheets.length > 0 ? validSheets : ['Sheet1']
-  } catch {
-    return ['Sheet1']
-  }
-}
+      }).filter((q): q is Question => q !== null && q.question !== "")
 
-export async function GET(request: NextRequest) {
-  const url = request.nextUrl.searchParams.get('url')
-  
-  if (!url) {
-    return NextResponse.json({ error: 'No URL provided' }, { status: 400 })
-  }
-  
-  const spreadsheetId = extractSpreadsheetId(url)
-  
-  if (!spreadsheetId) {
-    return NextResponse.json({ error: 'Invalid Google Sheets URL' }, { status: 400 })
-  }
-  
-  try {
-    // Get all sheet names
-    const sheetNames = await getAllSheetNames(spreadsheetId)
-    
+      const datasetType = grammarCount >= vocabCount ? 1 : 2
+
+      return NextResponse.json({
+        dataset: {
+          id: `sheet-${sheetName}-${generateId()}`,
+          fileName: sheetName,
+          createdAt: new Date().toISOString(),
+          type: datasetType as 1 | 2,
+          totalQuestions: questions.length,
+          questions,
+        }
+      })
+    }
+
+    // Default: fetch all sheets and their data
+    const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${API_KEY}&fields=sheets.properties.title`
+    const metadataRes = await fetch(metadataUrl, { cache: 'no-store' })
+
+    if (!metadataRes.ok) {
+      return NextResponse.json({ error: "Khong the tai spreadsheet" }, { status: 500 })
+    }
+
+    const metadata = await metadataRes.json()
+    const sheetNames = metadata.sheets?.map((s: { properties: { title: string } }) => s.properties.title) || []
+
+    // Fetch all sheets data
     const datasets: Dataset[] = []
-    
-    // Fetch data from each sheet
-    for (const sheetName of sheetNames) {
-      try {
-        const rows = await fetchSheetData(spreadsheetId, sheetName)
-        const dataset = convertToDataset(rows, sheetName)
-        if (dataset) {
-          datasets.push(dataset)
+    for (const name of sheetNames) {
+      const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(name)}?key=${API_KEY}`
+      const dataRes = await fetch(dataUrl, { cache: 'no-store' })
+
+      if (dataRes.ok) {
+        const data = await dataRes.json()
+        const rows = data.values || []
+
+        if (rows.length >= 2) {
+          const header = rows[0].map((h: string) => h?.toString().toLowerCase().trim())
+          const dataRows = rows.slice(1)
+          const isFullFormat = header.includes("answer1") || header.includes("correct") || header.length >= 7
+
+          let grammarCount = 0
+          let vocabCount = 0
+
+          const questions: Question[] = dataRows.map((row: string[], index: number) => {
+            if (!row[0] || !row[1]) return null
+
+            const typeStr = row[0]?.toString().trim()
+            const type = (typeStr === '1' || typeStr.toLowerCase() === 'grammar') ? 1 : 2
+            
+            if (type === 1) grammarCount++
+            else vocabCount++
+
+            if (isFullFormat && row.length >= 7) {
+              const question = row[1]?.trim() || ""
+              const answers = [
+                row[2]?.trim() || "", 
+                row[3]?.trim() || "", 
+                row[4]?.trim() || "", 
+                row[5]?.trim() || ""
+              ].filter(a => a)
+              const correct = row[6]?.trim() || answers[0] || ""
+              const explain = row[7]?.trim() || ""
+
+              return {
+                id: `${name}-${index}-${generateId()}`,
+                type: type as 1 | 2,
+                question,
+                answers: answers.length > 0 ? answers : [correct],
+                correct,
+                explain,
+                played: false,
+              }
+            } else {
+              const question = row[1]?.trim() || ""
+              const answer = row[2]?.trim() || ""
+
+              return {
+                id: `${name}-${index}-${generateId()}`,
+                type: type as 1 | 2,
+                question,
+                answers: [answer],
+                correct: answer,
+                explain: "",
+                played: false,
+              }
+            }
+          }).filter((q): q is Question => q !== null && q.question !== "")
+
+          if (questions.length > 0) {
+            const datasetType = grammarCount >= vocabCount ? 1 : 2
+            datasets.push({
+              id: `sheet-${name}-${generateId()}`,
+              fileName: name,
+              createdAt: new Date().toISOString(),
+              type: datasetType as 1 | 2,
+              totalQuestions: questions.length,
+              questions,
+            })
+          }
         }
-      } catch (error) {
-        console.error(`Failed to fetch sheet ${sheetName}:`, error)
-        // Continue with other sheets
       }
     }
-    
-    return NextResponse.json({ 
-      success: true, 
-      datasets,
-      sheetNames,
-      spreadsheetId 
-    })
+
+    return NextResponse.json({ datasets, sheets: sheetNames })
   } catch (error) {
-    console.error('Error fetching Google Sheet:', error)
-    return NextResponse.json({ 
-      error: 'Failed to fetch Google Sheet data',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    console.error("Error fetching Google Sheets:", error)
+    return NextResponse.json({ error: "Loi khi tai du lieu" }, { status: 500 })
   }
 }
