@@ -1,11 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import { useAppStore } from "@/lib/store"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
+import { Input } from "@/components/ui/input"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,26 +20,35 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
-  Settings,
   Moon,
   Sun,
   Grid,
-  Sparkles,
   Volume2,
   Clock,
   Trash2,
   Palette,
   Zap,
+  Key,
+  Save,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import { toast } from "sonner"
 
 export function SettingsPanel() {
   const { settings, updateSettings, resetAllData } = useAppStore()
+  const [apiKeyInput, setApiKeyInput] = useState(settings.googleApiKey || "")
+  const [showApiKey, setShowApiKey] = useState(false)
 
   const handleDarkModeToggle = (checked: boolean) => {
     updateSettings({ darkMode: checked })
     document.documentElement.classList.toggle("dark", checked)
     toast.success(`Đã bật chế độ ${checked ? "tối" : "sáng"}`)
+  }
+
+  const handleSaveApiKey = () => {
+    updateSettings({ googleApiKey: apiKeyInput })
+    toast.success("Đã lưu API Key")
   }
 
   const handleResetData = () => {
@@ -47,6 +58,54 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-6">
+      {/* API Key Configuration */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Key className="w-5 h-5" />
+            Google API Key
+          </CardTitle>
+          <CardDescription>
+            Cấu hình API Key để kết nối với Google Sheets. Thay đổi nếu API Key cũ hết hiệu lực.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                type={showApiKey ? "text" : "password"}
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder="Nhập Google API Key..."
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full"
+                onClick={() => setShowApiKey(!showApiKey)}
+              >
+                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </Button>
+            </div>
+            <Button onClick={handleSaveApiKey} disabled={!apiKeyInput || !apiKeyInput.trim()}>
+              <Save className="w-4 h-4 mr-1" />
+              Lưu
+            </Button>
+          </div>
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <p className="text-sm font-medium mb-2">Hướng dẫn lấy API Key:</p>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Truy cập Google Cloud Console</li>
+              <li>Tạo project mới hoặc chọn project hiện có</li>
+              <li>Bật Google Sheets API</li>
+              <li>Tạo API Key và dán vào đây</li>
+            </ol>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Appearance */}
       <Card className="border-border/50">
         <CardHeader>
@@ -163,7 +222,7 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" />
-            Cài đặt Flashcard
+            Cài đặt Ôn tập
           </CardTitle>
           <CardDescription>
             Tùy chỉnh thời gian phát tự động
@@ -222,24 +281,24 @@ export function SettingsPanel() {
             <AlertDialogTrigger asChild>
               <Button variant="destructive" className="w-full sm:w-auto">
                 <Trash2 className="w-4 h-4 mr-2" />
-                Xóa tất cả dữ liệu
+                Xoa tat ca du lieu
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Bạn có chắc chắn?</AlertDialogTitle>
+                <AlertDialogTitle>Ban co chac chan?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Thao tác này sẽ xóa tất cả bộ dữ liệu, người chơi, lịch sử chơi, và đặt lại tất cả cài đặt về mặc định. 
-                  Hành động này không thể hoàn tác.
+                  Thao tac nay se xoa tat ca bo du lieu, nguoi choi, lich su choi, va dat lai tat ca cai dat ve mac dinh. 
+                  Hanh dong nay khong the hoan tac.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                <AlertDialogCancel>Huy</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleResetData}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Xóa tất cả
+                  Xoa tat ca
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

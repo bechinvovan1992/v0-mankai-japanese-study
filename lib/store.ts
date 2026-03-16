@@ -14,6 +14,8 @@ interface AppState {
   removeDataset: (id: string) => void
   removeDatasetAndDelete: (id: string) => Promise<void>
   loadDatasetsFromServer: () => Promise<void>
+  loadDatasetsFromGoogleSheet: () => Promise<void>
+  isLoadingFromGoogleSheet: boolean
   selectDataset: (id: string) => void
   deselectDataset: (id: string) => void
   selectAllDatasets: () => void
@@ -66,12 +68,14 @@ interface AppState {
 }
 
 const defaultSettings: Settings = {
-  darkMode: true,
+  darkMode: false,
   boardColumns: 4,
   animationEnabled: true,
   soundEnabled: true,
   autoPlayFrontTime: 3,
   autoPlayBackTime: 3,
+  googleSheetUrl: "",
+  googleApiKey: "AIzaSyC8uGxGFs3IK2mdOowQ8kokw1w5yNucZrM",
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15)
@@ -83,6 +87,7 @@ export const useAppStore = create<AppState>()(
       datasets: [],
       selectedDatasetIds: [],
       isLoadingFromServer: false,
+      isLoadingFromGoogleSheet: false,
       addDataset: (dataset) =>
         set((state) => ({ datasets: [...state.datasets, dataset] })),
       addDatasetAndSave: async (dataset) => {
@@ -132,6 +137,25 @@ export const useAppStore = create<AppState>()(
           console.error("Failed to load datasets from server:", error)
         } finally {
           set({ isLoadingFromServer: false })
+        }
+      },
+      loadDatasetsFromGoogleSheet: async () => {
+        const state = get()
+        const { googleSheetUrl } = state.settings
+        if (!googleSheetUrl) return
+
+        set({ isLoadingFromGoogleSheet: true })
+        try {
+          const res = await fetch(`/api/google-sheets?url=${encodeURIComponent(googleSheetUrl)}`)
+          const data = await res.json()
+          if (data.datasets && data.datasets.length > 0) {
+            // Replace all datasets with Google Sheet data
+            set({ datasets: data.datasets })
+          }
+        } catch (error) {
+          console.error("Failed to load datasets from Google Sheet:", error)
+        } finally {
+          set({ isLoadingFromGoogleSheet: false })
         }
       },
       selectDataset: (id) =>

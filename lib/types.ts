@@ -67,6 +67,8 @@ export interface Settings {
   soundEnabled: boolean
   autoPlayFrontTime: number
   autoPlayBackTime: number
+  googleSheetUrl: string
+  googleApiKey: string
 }
 
 export interface DataIndex {

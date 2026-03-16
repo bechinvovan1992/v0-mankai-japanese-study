@@ -9,13 +9,11 @@ import {
   HelpCircle,
   BookOpen,
   Languages,
-  Upload,
   Gamepad2,
   BookMarked,
   Settings,
   Sparkles,
   Star,
-  Rocket,
 } from "lucide-react"
 
 export function DashboardStats() {
@@ -59,30 +57,23 @@ export function DashboardStats() {
 
   const quickActions = [
     {
-      title: "Nhập CSV",
-      description: "Thêm câu hỏi từ file CSV",
-      href: "/import",
-      icon: Upload,
-      gradient: "from-pink-500 to-rose-500",
-    },
-    {
-      title: "Chơi Game",
-      description: "Chơi quiz cùng bạn bè",
+      title: "Trò chơi",
+      description: "Chọn dữ liệu, người chơi và bắt đầu",
       href: "/game",
       icon: Gamepad2,
       gradient: "from-violet-500 to-purple-500",
     },
     {
-      title: "Học Flashcard",
+      title: "Ôn tập",
       description: "Ôn tập với thẻ ghi nhớ",
-      href: "/flashcard",
+      href: "/review",
       icon: BookMarked,
       gradient: "from-emerald-500 to-teal-500",
     },
     {
-      title: "Quản lý dữ liệu",
-      description: "Xem và quản lý bộ dữ liệu",
-      href: "/datasets",
+      title: "Cài đặt",
+      description: "Cấu hình API Key & giao diện",
+      href: "/settings",
       icon: Settings,
       gradient: "from-amber-500 to-orange-500",
     },
@@ -135,7 +126,7 @@ export function DashboardStats() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Rocket className="w-5 h-5 text-primary" />
+          <Sparkles className="w-5 h-5 text-primary" />
           Bắt đầu nhanh
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
