@@ -52,15 +52,20 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 
-const gameModes: { id: GameMode; name: string; description: string; icon: React.ElementType }[] = [
-  { id: "guess", name: "Đoán đáp án", description: "Trả lời miệng, sau đó xem đáp án", icon: HelpCircle },
-  { id: "multiple", name: "Trắc nghiệm", description: "Chọn 1 trong 4 đáp án", icon: Target },
-  { id: "elimination", name: "Loại trừ", description: "Loại 2 đáp án sai trước", icon: Zap },
-  { id: "speed", name: "Tốc độ", description: "Trả lời trong 10 giây", icon: Timer },
-  { id: "hidden", name: "Ẩn đáp án", description: "Đáp án ẩn 3 giây đầu", icon: EyeOff },
-  { id: "truefalse", name: "Đúng/Sai", description: "Đoán đáp án đúng hay sai", icon: ThumbsUp },
-  { id: "suddendeath", name: "Sinh tử", description: "Trả lời sai bị loại", icon: Skull },
-  { id: "teambattle", name: "Đối kháng", description: "2 đội thi đấu", icon: Swords },
+// Simple format modes: type, question, answer (answers.length === 1)
+const simpleFormatModes: GameMode[] = ["guess"]
+// Full format modes: type, question, answer1-4, correct, explain (answers.length > 1)
+const fullFormatModes: GameMode[] = ["multiple", "elimination", "speed", "hidden", "truefalse", "suddendeath", "teambattle"]
+
+const gameModes: { id: GameMode; name: string; description: string; icon: React.ElementType; formatType: "simple" | "full" }[] = [
+  { id: "guess", name: "Đoán đáp án", description: "Trả lời miệng, sau đó xem đáp án", icon: HelpCircle, formatType: "simple" },
+  { id: "multiple", name: "Trắc nghiệm", description: "Chọn 1 trong 4 đáp án", icon: Target, formatType: "full" },
+  { id: "elimination", name: "Loại trừ", description: "Loại 2 đáp án sai trước", icon: Zap, formatType: "full" },
+  { id: "speed", name: "Tốc độ", description: "Trả lời trong 10 giây", icon: Timer, formatType: "full" },
+  { id: "hidden", name: "Ẩn đáp án", description: "Đáp án ẩn 3 giây đầu", icon: EyeOff, formatType: "full" },
+  { id: "truefalse", name: "Đúng/Sai", description: "Đoán đáp án đúng hay sai", icon: ThumbsUp, formatType: "full" },
+  { id: "suddendeath", name: "Sinh tử", description: "Trả lời sai bị loại", icon: Skull, formatType: "full" },
+  { id: "teambattle", name: "Đối kháng", description: "2 đội thi đấu", icon: Swords, formatType: "full" },
 ]
 
 export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
@@ -195,11 +200,39 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
     toast.success(`Đã thêm ${names.length} người chơi`)
   }
 
-  const canStart = selectedDatasetIds.length > 0 && players.length > 0
-
   const selectedQuestionCount = datasets
     .filter(d => selectedDatasetIds.includes(d.id))
     .reduce((sum, d) => sum + d.questions.filter(q => !q.played).length, 0)
+
+  // Detect data format from selected datasets
+  const selectedDatasets = datasets.filter(d => selectedDatasetIds.includes(d.id))
+  const hasSimpleFormat = selectedDatasets.some(d => 
+    d.questions.some(q => q.answers.length === 1)
+  )
+  const hasFullFormat = selectedDatasets.some(d => 
+    d.questions.some(q => q.answers.length > 1)
+  )
+
+  // Check if selected game mode is compatible with data
+  const isModeCompatible = (modeId: GameMode) => {
+    if (selectedDatasetIds.length === 0) return true // No data selected yet
+    if (simpleFormatModes.includes(modeId)) return hasSimpleFormat
+    if (fullFormatModes.includes(modeId)) return hasFullFormat
+    return true
+  }
+
+  // Auto-select compatible mode if current mode is not compatible
+  useEffect(() => {
+    if (selectedDatasetIds.length > 0 && !isModeCompatible(selectedGameMode)) {
+      // Find first compatible mode
+      const compatibleMode = gameModes.find(m => isModeCompatible(m.id))
+      if (compatibleMode) {
+        setGameMode(compatibleMode.id)
+      }
+    }
+  }, [selectedDatasetIds, hasSimpleFormat, hasFullFormat])
+
+  const canStart = selectedDatasetIds.length > 0 && players.length > 0 && isModeCompatible(selectedGameMode)
 
   const goToNextTab = () => {
     if (activeTab === "datasets") setActiveTab("players")
@@ -589,27 +622,51 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
             <Card>
               <CardHeader>
                 <CardTitle>Chọn chế độ chơi</CardTitle>
-                <CardDescription>Mỗi chế độ có cách chơi khác nhau</CardDescription>
+                <CardDescription>
+                  {selectedDatasetIds.length === 0 
+                    ? "Vui lòng chọn bộ dữ liệu trước" 
+                    : hasSimpleFormat && hasFullFormat 
+                      ? "Dữ liệu có cả 2 định dạng" 
+                      : hasSimpleFormat 
+                        ? "Dữ liệu dạng đơn giản (câu hỏi - đáp án)" 
+                        : "Dữ liệu dạng trắc nghiệm (4 đáp án)"}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {gameModes.map((mode) => {
                     const Icon = mode.icon
                     const isSelected = selectedGameMode === mode.id
+                    const isCompatible = isModeCompatible(mode.id)
+                    const isDisabled = !isCompatible && selectedDatasetIds.length > 0
                     return (
                       <button
                         key={mode.id}
-                        onClick={() => setGameMode(mode.id)}
+                        onClick={() => !isDisabled && setGameMode(mode.id)}
+                        disabled={isDisabled}
                         className={cn(
-                          "p-4 rounded-xl border-2 text-left transition-all",
+                          "p-4 rounded-xl border-2 text-left transition-all relative",
                           isSelected
                             ? "border-primary bg-primary/10"
-                            : "border-border/50 hover:border-primary/30"
+                            : isDisabled 
+                              ? "border-border/30 bg-muted/50 opacity-50 cursor-not-allowed"
+                              : "border-border/50 hover:border-primary/30"
                         )}
                       >
+                        {isDisabled && (
+                          <div className="absolute top-1 right-1">
+                            <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        )}
                         <Icon className={cn("w-6 h-6 mb-2", isSelected ? "text-primary" : "text-muted-foreground")} />
                         <p className="font-medium text-sm">{mode.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{mode.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {isDisabled 
+                            ? mode.formatType === "simple" 
+                              ? "Cần dữ liệu dạng đơn giản" 
+                              : "Cần dữ liệu trắc nghiệm"
+                            : mode.description}
+                        </p>
                       </button>
                     )
                   })}
