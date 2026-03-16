@@ -86,6 +86,32 @@ export function ReviewPlayer() {
     name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // Detect data format from selected datasets
+  const selectedDatasets = reviewDatasets.filter(d => selectedReviewDatasetIds.includes(d.id))
+  const hasSimpleFormat = selectedDatasets.some(d => 
+    d.questions.some(q => q.answers.length === 1)
+  )
+  const hasFullFormat = selectedDatasets.some(d => 
+    d.questions.some(q => q.answers.length > 1)
+  )
+
+  // Simple format modes: flip, guess (type, question, answer)
+  // Full format mode: quiz (type, question, answer1-4, correct, explain)
+  const isModeCompatible = (mode: ReviewMode) => {
+    if (selectedReviewDatasetIds.length === 0) return true
+    if (mode === "flip" || mode === "guess") return hasSimpleFormat
+    if (mode === "quiz") return hasFullFormat
+    return true
+  }
+
+  // Auto-select compatible mode if current mode is not compatible
+  useEffect(() => {
+    if (selectedReviewDatasetIds.length > 0 && !isModeCompatible(reviewMode)) {
+      if (hasSimpleFormat) setReviewMode("flip")
+      else if (hasFullFormat) setReviewMode("quiz")
+    }
+  }, [selectedReviewDatasetIds, hasSimpleFormat, hasFullFormat])
+
   // Load sheets on mount
   useEffect(() => {
     loadSheetNames()
@@ -466,18 +492,57 @@ export function ReviewPlayer() {
             <div className="space-y-4">
               {/* Study Mode */}
               <div>
-                <Label className="text-xs text-muted-foreground mb-2 block">Chế độ học</Label>
-                <Tabs value={reviewMode} onValueChange={(v) => { setReviewMode(v as ReviewMode); resetQuiz() }} className="w-full">
+                <Label className="text-xs text-muted-foreground mb-2 block">
+                  Chế độ học 
+                  {selectedReviewDatasetIds.length > 0 && (
+                    <span className="ml-2 text-muted-foreground/70">
+                      ({hasSimpleFormat && hasFullFormat 
+                        ? "Dữ liệu hỗn hợp" 
+                        : hasSimpleFormat 
+                          ? "Dữ liệu đơn giản" 
+                          : hasFullFormat 
+                            ? "Dữ liệu trắc nghiệm" 
+                            : ""})
+                    </span>
+                  )}
+                </Label>
+                <Tabs value={reviewMode} onValueChange={(v) => { 
+                  if (isModeCompatible(v as ReviewMode)) {
+                    setReviewMode(v as ReviewMode)
+                    resetQuiz() 
+                  }
+                }} className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="flip" className="flex items-center gap-2">
+                    <TabsTrigger 
+                      value="flip" 
+                      className={cn(
+                        "flex items-center gap-2",
+                        !isModeCompatible("flip") && selectedReviewDatasetIds.length > 0 && "opacity-50 cursor-not-allowed"
+                      )}
+                      disabled={!isModeCompatible("flip") && selectedReviewDatasetIds.length > 0}
+                    >
                       <RotateCw className="w-4 h-4" />
                       Lật thẻ
                     </TabsTrigger>
-                    <TabsTrigger value="guess" className="flex items-center gap-2">
+                    <TabsTrigger 
+                      value="guess" 
+                      className={cn(
+                        "flex items-center gap-2",
+                        !isModeCompatible("guess") && selectedReviewDatasetIds.length > 0 && "opacity-50 cursor-not-allowed"
+                      )}
+                      disabled={!isModeCompatible("guess") && selectedReviewDatasetIds.length > 0}
+                    >
                       <Eye className="w-4 h-4" />
                       Đoán đáp án
                     </TabsTrigger>
-                    <TabsTrigger value="quiz" className="flex items-center gap-2">
+                    <TabsTrigger 
+                      value="quiz" 
+                      className={cn(
+                        "flex items-center gap-2",
+                        !isModeCompatible("quiz") && selectedReviewDatasetIds.length > 0 && "opacity-50 cursor-not-allowed"
+                      )}
+                      disabled={!isModeCompatible("quiz") && selectedReviewDatasetIds.length > 0}
+                    >
                       <ClipboardList className="w-4 h-4" />
                       Trắc nghiệm
                     </TabsTrigger>
