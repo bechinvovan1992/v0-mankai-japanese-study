@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import {
@@ -305,6 +306,9 @@ export function GameBoard() {
               </Badge>
               <span>Câu hỏi cho {currentPlayer?.name}</span>
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Trả lời câu hỏi để ghi điểm
+            </DialogDescription>
           </DialogHeader>
 
           <div className="py-6 space-y-6">
@@ -398,6 +402,9 @@ export function GameBoard() {
               <Trophy className="w-5 h-5 text-warning" />
               Bảng điểm
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Xem điểm số của tất cả người chơi
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-3">
             {sortedPlayers.map((player, index) => (

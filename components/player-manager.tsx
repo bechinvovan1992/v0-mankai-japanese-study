@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
 import {
@@ -247,6 +248,9 @@ export function PlayerManager() {
               <PartyPopper className="w-5 h-5 text-primary" />
               Thêm nhiều người chơi
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Nhập tên nhiều người chơi cùng lúc
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Textarea
@@ -279,6 +283,9 @@ export function PlayerManager() {
               <Edit2 className="w-5 h-5 text-primary" />
               Sửa tên người chơi
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Chỉnh sửa tên người chơi
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input
