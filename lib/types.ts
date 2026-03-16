@@ -8,6 +8,7 @@ export interface Question {
   correct: string
   explain: string
   played: boolean
+  markedWrong?: boolean // For wrong review mode
 }
 
 export interface Dataset {

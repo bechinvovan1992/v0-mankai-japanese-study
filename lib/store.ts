@@ -34,13 +34,19 @@ interface AppState {
   // Flashcard
   flashcardQuestions: Question[]
   currentFlashcardIndex: number
-  flashcardFilter: "all" | "grammar" | "vocabulary"
-  setFlashcardFilter: (filter: "all" | "grammar" | "vocabulary") => void
+  flashcardFilter: "all" | "grammar" | "vocabulary" | "wrong"
+  flashcardMode: "flip" | "guess"
+  wrongAnswerIds: string[]
+  setFlashcardFilter: (filter: "all" | "grammar" | "vocabulary" | "wrong") => void
+  setFlashcardMode: (mode: "flip" | "guess") => void
   loadFlashcards: () => void
   nextFlashcard: () => void
   prevFlashcard: () => void
   shuffleFlashcards: () => void
   setFlashcardIndex: (index: number) => void
+  markFlashcardWrong: (questionId: string) => void
+  markFlashcardCorrect: (questionId: string) => void
+  clearWrongAnswers: () => void
 
   // Settings
   settings: Settings
@@ -231,7 +237,10 @@ export const useAppStore = create<AppState>()(
       flashcardQuestions: [],
       currentFlashcardIndex: 0,
       flashcardFilter: "all",
+      flashcardMode: "flip",
+      wrongAnswerIds: [],
       setFlashcardFilter: (filter) => set({ flashcardFilter: filter }),
+      setFlashcardMode: (mode) => set({ flashcardMode: mode }),
       loadFlashcards: () => {
         const state = get()
         const selectedDatasets = state.datasets.filter((d) =>
@@ -243,6 +252,8 @@ export const useAppStore = create<AppState>()(
           questions = questions.filter((q) => q.type === 1)
         } else if (state.flashcardFilter === "vocabulary") {
           questions = questions.filter((q) => q.type === 2)
+        } else if (state.flashcardFilter === "wrong") {
+          questions = questions.filter((q) => state.wrongAnswerIds.includes(q.id))
         }
 
         set({ flashcardQuestions: questions, currentFlashcardIndex: 0 })
@@ -267,6 +278,17 @@ export const useAppStore = create<AppState>()(
           currentFlashcardIndex: 0,
         })),
       setFlashcardIndex: (index) => set({ currentFlashcardIndex: index }),
+      markFlashcardWrong: (questionId) =>
+        set((state) => ({
+          wrongAnswerIds: state.wrongAnswerIds.includes(questionId)
+            ? state.wrongAnswerIds
+            : [...state.wrongAnswerIds, questionId],
+        })),
+      markFlashcardCorrect: (questionId) =>
+        set((state) => ({
+          wrongAnswerIds: state.wrongAnswerIds.filter((id) => id !== questionId),
+        })),
+      clearWrongAnswers: () => set({ wrongAnswerIds: [] }),
 
       // Settings
       settings: defaultSettings,
