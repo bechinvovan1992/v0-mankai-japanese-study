@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Nunito, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
+const _nunito = Nunito({ subsets: ["latin", "vietnamese"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Mankai - Japanese Study App',
-  description: 'Learn Japanese grammar and vocabulary through games and flashcards',
+  title: 'Mankai - Ôn Tập Tiếng Nhật',
+  description: 'Ứng dụng học tiếng Nhật thông qua trò chơi và thẻ flashcard',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -32,8 +32,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f5f5ff' },
-    { media: '(prefers-color-scheme: dark)', color: '#1a1a2e' },
+    { media: '(prefers-color-scheme: light)', color: '#fff5f8' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1625' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -45,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="vi" className="dark">
       <body className="font-sans antialiased">
         {children}
         <Toaster position="top-right" richColors />

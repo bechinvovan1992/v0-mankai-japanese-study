@@ -19,14 +19,14 @@ import { cn } from "@/lib/utils"
 import {
   Play,
   Pause,
-  SkipBack,
-  SkipForward,
   Shuffle,
-  RotateCcw,
   BookOpen,
   Settings,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
+  Timer,
+  RotateCw,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -77,7 +77,7 @@ export function FlashcardPlayer() {
 
   const startAutoPlay = useCallback(() => {
     if (flashcardQuestions.length === 0) {
-      toast.error("No flashcards to play")
+      toast.error("Không có thẻ để phát")
       return
     }
     setIsAutoPlaying(true)
@@ -107,7 +107,7 @@ export function FlashcardPlayer() {
           setIsFlipped(false)
         } else {
           stopAutoPlay()
-          toast.success("Flashcard review complete!")
+          toast.success("Đã ôn tập xong tất cả thẻ!")
         }
       }
       setProgress(0)
@@ -128,7 +128,7 @@ export function FlashcardPlayer() {
   const handleShuffle = () => {
     shuffleFlashcards()
     setIsFlipped(false)
-    toast.success("Cards shuffled")
+    toast.success("Đã xáo trộn thẻ!")
   }
 
   const handlePrev = () => {
@@ -147,15 +147,17 @@ export function FlashcardPlayer() {
 
   if (selectedDatasetIds.length === 0) {
     return (
-      <Card className="border-border/50">
+      <Card className="border-border/50 border-2 border-dashed">
         <CardContent className="py-12 text-center">
-          <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Datasets Selected</h3>
-          <p className="text-muted-foreground mb-4">
-            Go to the Datasets page to select datasets for flashcard study.
+          <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="w-10 h-10 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-bold mb-2">Chưa chọn bộ dữ liệu</h3>
+          <p className="text-muted-foreground mb-6">
+            Vào trang Bộ dữ liệu để chọn bộ dữ liệu cho flashcard nhé.
           </p>
-          <Button asChild>
-            <a href="/datasets">Select Datasets</a>
+          <Button asChild className="bg-gradient-fun hover:opacity-90">
+            <a href="/datasets">Chọn bộ dữ liệu</a>
           </Button>
         </CardContent>
       </Card>
@@ -170,49 +172,50 @@ export function FlashcardPlayer() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div>
-                <Label className="text-xs text-muted-foreground">Filter</Label>
+                <Label className="text-xs text-muted-foreground">Lọc theo</Label>
                 <Select
                   value={flashcardFilter}
                   onValueChange={(v) => setFlashcardFilter(v as "all" | "grammar" | "vocabulary")}
                 >
-                  <SelectTrigger className="w-36">
+                  <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="grammar">Grammar Only</SelectItem>
-                    <SelectItem value="vocabulary">Vocabulary Only</SelectItem>
+                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="grammar">Chỉ ngữ pháp</SelectItem>
+                    <SelectItem value="vocabulary">Chỉ từ vựng</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="text-sm text-muted-foreground">
-                {flashcardQuestions.length} cards from {selectedDatasetIds.length} dataset(s)
+              <div className="text-sm text-muted-foreground bg-secondary/50 px-3 py-2 rounded-lg">
+                {flashcardQuestions.length} thẻ từ {selectedDatasetIds.length} bộ
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleShuffle}>
+              <Button variant="outline" size="sm" onClick={handleShuffle} className="hover:bg-primary/10">
                 <Shuffle className="w-4 h-4 mr-1" />
-                Shuffle
+                Xáo trộn
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowSettings(!showSettings)}
+                className={showSettings ? "bg-primary/10" : ""}
               >
-                <Settings className="w-4 h-4 mr-1" />
-                Auto Play
+                <Timer className="w-4 h-4 mr-1" />
+                Tự động
               </Button>
             </div>
           </div>
 
           {/* Auto Play Settings */}
           {showSettings && (
-            <div className="mt-4 p-4 bg-secondary/50 rounded-lg space-y-4">
+            <div className="mt-4 p-4 bg-secondary/50 rounded-xl space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm">Front side time: {frontTime}s</Label>
+                  <Label className="text-sm font-medium">Mặt trước: {frontTime}s</Label>
                   <Slider
                     value={[frontTime]}
                     onValueChange={([v]) => setFrontTime(v)}
@@ -223,7 +226,7 @@ export function FlashcardPlayer() {
                   />
                 </div>
                 <div>
-                  <Label className="text-sm">Back side time: {backTime}s</Label>
+                  <Label className="text-sm font-medium">Mặt sau: {backTime}s</Label>
                   <Slider
                     value={[backTime]}
                     onValueChange={([v]) => setBackTime(v)}
@@ -238,12 +241,12 @@ export function FlashcardPlayer() {
                 {isAutoPlaying ? (
                   <Button onClick={stopAutoPlay} variant="destructive">
                     <Pause className="w-4 h-4 mr-2" />
-                    Stop Auto Play
+                    Dừng
                   </Button>
                 ) : (
-                  <Button onClick={startAutoPlay}>
+                  <Button onClick={startAutoPlay} className="bg-gradient-fun hover:opacity-90">
                     <Play className="w-4 h-4 mr-2" />
-                    Start Auto Play
+                    Bắt đầu tự động
                   </Button>
                 )}
               </div>
@@ -261,8 +264,8 @@ export function FlashcardPlayer() {
       {flashcardQuestions.length > 0 && currentCard ? (
         <div className="flex flex-col items-center gap-6">
           {/* Card Counter */}
-          <div className="text-sm text-muted-foreground">
-            Card {currentFlashcardIndex + 1} of {flashcardQuestions.length}
+          <div className="text-sm text-muted-foreground bg-secondary/50 px-4 py-2 rounded-lg">
+            Thẻ {currentFlashcardIndex + 1} / {flashcardQuestions.length}
           </div>
 
           {/* Flip Card */}
@@ -273,19 +276,27 @@ export function FlashcardPlayer() {
             <div className={cn("flip-card-inner", isFlipped && "flipped")}>
               {/* Front */}
               <div className="flip-card-front">
-                <Card className="w-full h-full border-border/50 flex flex-col">
+                <Card className="w-full h-full border-2 border-primary/20 flex flex-col hover:shadow-xl transition-shadow">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <Badge variant={currentCard.type === 1 ? "default" : "secondary"}>
-                        {currentCard.type === 1 ? "Grammar" : "Vocabulary"}
+                      <Badge 
+                        className={cn(
+                          "py-1",
+                          currentCard.type === 1 
+                            ? "bg-chart-3 text-chart-3-foreground" 
+                            : "bg-chart-4 text-chart-4-foreground"
+                        )}
+                      >
+                        {currentCard.type === 1 ? "Ngữ pháp" : "Từ vựng"}
                       </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        Click to flip
+                      <span className="text-sm text-muted-foreground flex items-center gap-1">
+                        <RotateCw className="w-4 h-4" />
+                        Nhấn để lật
                       </span>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 flex items-center justify-center p-8">
-                    <p className="text-2xl font-medium text-center">
+                    <p className="text-2xl md:text-3xl font-medium text-center leading-relaxed">
                       {currentCard.question}
                     </p>
                   </CardContent>
@@ -294,18 +305,22 @@ export function FlashcardPlayer() {
 
               {/* Back */}
               <div className="flip-card-back">
-                <Card className="w-full h-full border-primary/50 bg-primary/5 flex flex-col overflow-auto">
+                <Card className="w-full h-full border-2 border-success/50 bg-success/5 flex flex-col overflow-auto hover:shadow-xl transition-shadow">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <Badge className="bg-success text-success-foreground">Answer</Badge>
-                      <span className="text-sm text-muted-foreground">
-                        Click to flip
+                      <Badge className="bg-success text-success-foreground py-1">
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        Đáp án
+                      </Badge>
+                      <span className="text-sm text-muted-foreground flex items-center gap-1">
+                        <RotateCw className="w-4 h-4" />
+                        Nhấn để lật
                       </span>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 p-6 space-y-4 overflow-auto">
                     {/* Question */}
-                    <p className="text-lg text-center text-muted-foreground">
+                    <p className="text-lg text-center text-muted-foreground bg-secondary/50 p-3 rounded-lg">
                       {currentCard.question}
                     </p>
 
@@ -317,17 +332,21 @@ export function FlashcardPlayer() {
                           <div
                             key={index}
                             className={cn(
-                              "p-3 rounded-lg border",
+                              "p-3 rounded-xl border-2",
                               isCorrect
-                                ? "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400"
+                                ? "border-success bg-success/10"
                                 : "border-border/50"
                             )}
                           >
-                            <span className="font-medium mr-2">
-                              {["A", "B", "C", "D"][index]}.
+                            <span className={cn(
+                              "inline-flex items-center justify-center w-7 h-7 rounded-lg mr-2 text-sm font-bold",
+                              isCorrect ? "bg-success text-success-foreground" : "bg-secondary"
+                            )}>
+                              {["A", "B", "C", "D"][index]}
                             </span>
-                            {answer}
-                            {isCorrect && " ✓"}
+                            <span className={isCorrect ? "font-medium" : ""}>
+                              {answer}
+                            </span>
                           </div>
                         )
                       })}
@@ -335,8 +354,8 @@ export function FlashcardPlayer() {
 
                     {/* Explanation */}
                     {currentCard.explain && (
-                      <div className="p-4 bg-secondary rounded-lg">
-                        <p className="text-sm font-medium mb-1">Explanation:</p>
+                      <div className="p-4 bg-primary/10 rounded-xl border border-primary/20">
+                        <p className="text-sm font-bold mb-1 text-primary">Giải thích:</p>
                         <p className="text-sm">{currentCard.explain}</p>
                       </div>
                     )}
@@ -352,12 +371,13 @@ export function FlashcardPlayer() {
               variant="outline"
               size="lg"
               onClick={handlePrev}
-              disabled={isAutoPlaying}
+              disabled={isAutoPlaying || currentFlashcardIndex === 0}
+              className="hover:bg-primary/10"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-6 h-6" />
             </Button>
 
-            <div className="flex gap-1">
+            <div className="flex gap-1.5">
               {flashcardQuestions.slice(
                 Math.max(0, currentFlashcardIndex - 2),
                 Math.min(flashcardQuestions.length, currentFlashcardIndex + 3)
@@ -369,9 +389,9 @@ export function FlashcardPlayer() {
                     onClick={() => !isAutoPlaying && setFlashcardIndex(actualIndex)}
                     disabled={isAutoPlaying}
                     className={cn(
-                      "w-2 h-2 rounded-full transition-all",
+                      "w-2.5 h-2.5 rounded-full transition-all",
                       actualIndex === currentFlashcardIndex
-                        ? "bg-primary w-6"
+                        ? "bg-primary w-8"
                         : "bg-muted hover:bg-muted-foreground/50"
                     )}
                   />
@@ -383,18 +403,19 @@ export function FlashcardPlayer() {
               variant="outline"
               size="lg"
               onClick={handleNext}
-              disabled={isAutoPlaying}
+              disabled={isAutoPlaying || currentFlashcardIndex >= flashcardQuestions.length - 1}
+              className="hover:bg-primary/10"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-6 h-6" />
             </Button>
           </div>
         </div>
       ) : (
         <Card className="border-border/50">
           <CardContent className="py-12 text-center">
-            <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">
-              No flashcards match your current filter.
+            <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg">
+              Không có thẻ nào phù hợp với bộ lọc hiện tại.
             </p>
           </CardContent>
         </Card>

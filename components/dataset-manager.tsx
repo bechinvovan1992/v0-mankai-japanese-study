@@ -33,6 +33,8 @@ import {
   Plus,
   CheckSquare,
   Square,
+  Sparkles,
+  FolderOpen,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -62,17 +64,17 @@ export function DatasetManager() {
         })
       }
     })
-    toast.success("Sample datasets loaded!")
+    toast.success("Đã tải dữ liệu mẫu!")
   }
 
   const handleDelete = (id: string) => {
     removeDataset(id)
-    toast.success("Dataset deleted")
+    toast.success("Đã xóa bộ dữ liệu")
   }
 
   const handleReset = (id: string) => {
     resetDatasetPlayed(id)
-    toast.success("Play status reset")
+    toast.success("Đã đặt lại trạng thái")
   }
 
   const handleToggleSelect = (id: string) => {
@@ -87,7 +89,7 @@ export function DatasetManager() {
   const someSelected = selectedDatasetIds.length > 0 && !allSelected
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString("vi-VN", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -100,9 +102,9 @@ export function DatasetManager() {
     <div className="space-y-6">
       {/* Actions Bar */}
       <div className="flex flex-wrap items-center gap-4">
-        <Button onClick={handleLoadSampleData} variant="outline">
-          <Plus className="w-4 h-4 mr-2" />
-          Load Sample Data
+        <Button onClick={handleLoadSampleData} className="bg-gradient-fun hover:opacity-90">
+          <Sparkles className="w-4 h-4 mr-2" />
+          Tải dữ liệu mẫu
         </Button>
         <div className="flex items-center gap-2 ml-auto">
           <Button
@@ -113,12 +115,12 @@ export function DatasetManager() {
             {allSelected ? (
               <>
                 <Square className="w-4 h-4 mr-1" />
-                Deselect All
+                Bỏ chọn tất cả
               </>
             ) : (
               <>
                 <CheckSquare className="w-4 h-4 mr-1" />
-                Select All
+                Chọn tất cả
               </>
             )}
           </Button>
@@ -127,14 +129,15 @@ export function DatasetManager() {
 
       {/* Selection Info */}
       {selectedDatasetIds.length > 0 && (
-        <Card className="border-primary/50 bg-primary/5">
+        <Card className="border-primary/50 bg-primary/10">
           <CardContent className="py-3 px-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm">
-                <strong>{selectedDatasetIds.length}</strong> dataset(s) selected for game/flashcard
+              <span className="text-sm flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <strong>{selectedDatasetIds.length}</strong> bộ dữ liệu đã chọn cho game/flashcard
               </span>
               <Button variant="ghost" size="sm" onClick={deselectAllDatasets}>
-                Clear Selection
+                Xóa lựa chọn
               </Button>
             </div>
           </CardContent>
@@ -143,16 +146,18 @@ export function DatasetManager() {
 
       {/* Dataset List */}
       {datasets.length === 0 ? (
-        <Card className="border-border/50">
+        <Card className="border-border/50 border-2 border-dashed">
           <CardContent className="py-12 text-center">
-            <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Datasets</h3>
-            <p className="text-muted-foreground mb-4">
-              Import a CSV file or load sample data to get started.
+            <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
+              <FolderOpen className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Chưa có bộ dữ liệu</h3>
+            <p className="text-muted-foreground mb-6">
+              Nhập file CSV hoặc tải dữ liệu mẫu để bắt đầu.
             </p>
-            <Button onClick={handleLoadSampleData}>
-              <Plus className="w-4 h-4 mr-2" />
-              Load Sample Data
+            <Button onClick={handleLoadSampleData} className="bg-gradient-fun hover:opacity-90">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Tải dữ liệu mẫu
             </Button>
           </CardContent>
         </Card>
@@ -166,8 +171,8 @@ export function DatasetManager() {
             return (
               <Card
                 key={dataset.id}
-                className={`border-border/50 transition-all ${
-                  isSelected ? "border-primary ring-1 ring-primary/20" : ""
+                className={`border-border/50 transition-all hover:shadow-lg ${
+                  isSelected ? "border-primary ring-2 ring-primary/20 bg-primary/5" : ""
                 }`}
               >
                 <CardContent className="p-4">
@@ -181,28 +186,32 @@ export function DatasetManager() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         {dataset.type === 1 ? (
-                          <BookOpen className="w-4 h-4 text-chart-3" />
+                          <div className="w-8 h-8 rounded-lg bg-chart-3/20 flex items-center justify-center">
+                            <BookOpen className="w-4 h-4 text-chart-3" />
+                          </div>
                         ) : (
-                          <Languages className="w-4 h-4 text-chart-4" />
+                          <div className="w-8 h-8 rounded-lg bg-chart-4/20 flex items-center justify-center">
+                            <Languages className="w-4 h-4 text-chart-4" />
+                          </div>
                         )}
-                        <h3 className="font-semibold truncate">{dataset.fileName}</h3>
-                        <Badge variant={dataset.type === 1 ? "default" : "secondary"}>
-                          {dataset.type === 1 ? "Grammar" : "Vocabulary"}
+                        <h3 className="font-bold truncate">{dataset.fileName}</h3>
+                        <Badge variant={dataset.type === 1 ? "default" : "secondary"} className="shrink-0">
+                          {dataset.type === 1 ? "Ngữ pháp" : "Từ vựng"}
                         </Badge>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                        <span>{dataset.totalQuestions} questions</span>
+                        <span>{dataset.totalQuestions} câu hỏi</span>
                         <span>{formatDate(dataset.createdAt)}</span>
                         <span>
-                          {playedCount}/{dataset.totalQuestions} played ({playedPercent}%)
+                          {playedCount}/{dataset.totalQuestions} đã chơi ({playedPercent}%)
                         </span>
                       </div>
 
                       {/* Progress Bar */}
-                      <div className="mt-2 h-1.5 bg-secondary rounded-full overflow-hidden">
+                      <div className="mt-3 h-2 bg-secondary rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-primary transition-all"
+                          className="h-full bg-gradient-fun transition-all"
                           style={{ width: `${playedPercent}%` }}
                         />
                       </div>
@@ -213,6 +222,7 @@ export function DatasetManager() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setPreviewDataset(dataset)}
+                        className="hover:bg-primary/10"
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -220,6 +230,7 @@ export function DatasetManager() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleReset(dataset.id)}
+                        className="hover:bg-warning/10"
                       >
                         <RotateCcw className="w-4 h-4" />
                       </Button>
@@ -227,7 +238,7 @@ export function DatasetManager() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(dataset.id)}
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -244,10 +255,13 @@ export function DatasetManager() {
       <Dialog open={!!previewDataset} onOpenChange={() => setPreviewDataset(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>{previewDataset?.fileName}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              {previewDataset?.fileName}
+            </DialogTitle>
             <DialogDescription>
-              {previewDataset?.totalQuestions} questions -{" "}
-              {previewDataset?.type === 1 ? "Grammar" : "Vocabulary"}
+              {previewDataset?.totalQuestions} câu hỏi -{" "}
+              {previewDataset?.type === 1 ? "Ngữ pháp" : "Từ vựng"}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto">
@@ -255,9 +269,9 @@ export function DatasetManager() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
-                  <TableHead>Question</TableHead>
-                  <TableHead>Correct Answer</TableHead>
-                  <TableHead className="w-20">Played</TableHead>
+                  <TableHead>Câu hỏi</TableHead>
+                  <TableHead>Đáp án đúng</TableHead>
+                  <TableHead className="w-24">Đã chơi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -270,7 +284,7 @@ export function DatasetManager() {
                     <TableCell>{q.correct}</TableCell>
                     <TableCell>
                       <Badge variant={q.played ? "default" : "outline"}>
-                        {q.played ? "Yes" : "No"}
+                        {q.played ? "Rồi" : "Chưa"}
                       </Badge>
                     </TableCell>
                   </TableRow>

@@ -5,7 +5,6 @@ import { useAppStore } from "@/lib/store"
 import type { Dataset, Question } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -23,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Upload, FileText, Check, AlertCircle, X } from "lucide-react"
+import { Upload, FileText, Check, AlertCircle, X, Sparkles, PartyPopper } from "lucide-react"
 import { toast } from "sonner"
 
 interface ParsedQuestion {
@@ -88,16 +87,16 @@ export function ImportCsvPanel() {
 
       // Validation
       if (type !== 1 && type !== 2) {
-        errors.push("Type must be 1 (grammar) or 2 (vocabulary)")
+        errors.push("Loại phải là 1 (ngữ pháp) hoặc 2 (từ vựng)")
       }
       if (!question) {
-        errors.push("Question is required")
+        errors.push("Câu hỏi là bắt buộc")
       }
       if (!answer1 || !answer2 || !answer3 || !answer4) {
-        errors.push("All 4 answers are required")
+        errors.push("Cần có đủ 4 đáp án")
       }
       if (!["answer1", "answer2", "answer3", "answer4"].includes(correct)) {
-        errors.push("Correct must be answer1, answer2, answer3, or answer4")
+        errors.push("Đáp án đúng phải là answer1, answer2, answer3, hoặc answer4")
       }
 
       results.push({
@@ -130,7 +129,7 @@ export function ImportCsvPanel() {
       setParsedData(parsed)
       setStep("preview")
     } catch {
-      toast.error("Failed to read file")
+      toast.error("Không thể đọc file")
     } finally {
       setIsLoading(false)
     }
@@ -139,7 +138,7 @@ export function ImportCsvPanel() {
   const handleImport = () => {
     const validQuestions = parsedData.filter((q) => q.valid)
     if (validQuestions.length === 0) {
-      toast.error("No valid questions to import")
+      toast.error("Không có câu hỏi hợp lệ để nhập")
       return
     }
 
@@ -166,7 +165,7 @@ export function ImportCsvPanel() {
     }
 
     addDataset(dataset)
-    toast.success(`Imported ${questions.length} questions successfully!`)
+    toast.success(`Đã nhập ${questions.length} câu hỏi thành công!`)
     setStep("success")
   }
 
@@ -185,12 +184,12 @@ export function ImportCsvPanel() {
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              Import CSV File
+              <Upload className="w-5 h-5 text-primary" />
+              Nhập File CSV
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
+            <div className="border-2 border-dashed border-primary/30 rounded-2xl p-10 text-center bg-primary/5 hover:bg-primary/10 transition-colors">
               <input
                 type="file"
                 accept=".csv"
@@ -202,29 +201,32 @@ export function ImportCsvPanel() {
                 htmlFor="csv-upload"
                 className="cursor-pointer flex flex-col items-center gap-4"
               >
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <FileText className="w-8 h-8 text-primary" />
+                <div className="w-20 h-20 rounded-2xl bg-gradient-fun flex items-center justify-center shadow-lg animate-bounce-soft">
+                  <FileText className="w-10 h-10 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="font-medium">Click to upload CSV file</p>
+                  <p className="font-bold text-lg">Nhấn để tải file CSV lên</p>
                   <p className="text-sm text-muted-foreground">
-                    or drag and drop
+                    hoặc kéo thả file vào đây
                   </p>
                 </div>
               </label>
             </div>
 
-            <div className="bg-secondary/50 rounded-lg p-4">
-              <h4 className="font-medium mb-2">CSV Format</h4>
-              <code className="text-xs text-muted-foreground block">
+            <div className="bg-secondary/50 rounded-xl p-5">
+              <h4 className="font-bold mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Định dạng CSV
+              </h4>
+              <code className="text-xs text-muted-foreground block bg-background/50 p-3 rounded-lg">
                 type,question,answer1,answer2,answer3,answer4,correct,explain
               </code>
-              <div className="mt-3 text-sm text-muted-foreground space-y-1">
+              <div className="mt-4 text-sm text-muted-foreground space-y-2">
                 <p>
-                  <strong>type:</strong> 1 = grammar, 2 = vocabulary
+                  <strong className="text-foreground">type:</strong> 1 = ngữ pháp, 2 = từ vựng
                 </p>
                 <p>
-                  <strong>correct:</strong> answer1, answer2, answer3, or answer4
+                  <strong className="text-foreground">correct:</strong> answer1, answer2, answer3, hoặc answer4
                 </p>
               </div>
             </div>
@@ -237,10 +239,13 @@ export function ImportCsvPanel() {
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Preview Data</span>
+                <span className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  Xem trước dữ liệu
+                </span>
                 <Button variant="ghost" size="sm" onClick={resetForm}>
                   <X className="w-4 h-4 mr-1" />
-                  Cancel
+                  Hủy
                 </Button>
               </CardTitle>
             </CardHeader>
@@ -249,39 +254,39 @@ export function ImportCsvPanel() {
                 <div className="flex items-center gap-2">
                   <Badge variant="default" className="bg-success text-success-foreground">
                     <Check className="w-3 h-3 mr-1" />
-                    {validCount} valid
+                    {validCount} hợp lệ
                   </Badge>
                   {invalidCount > 0 && (
                     <Badge variant="destructive">
                       <AlertCircle className="w-3 h-3 mr-1" />
-                      {invalidCount} invalid
+                      {invalidCount} lỗi
                     </Badge>
                   )}
                 </div>
               </div>
 
               <div className="flex items-center gap-4">
-                <Label>Dataset Type</Label>
+                <Label>Loại bộ dữ liệu</Label>
                 <Select value={datasetType} onValueChange={(v) => setDatasetType(v as "1" | "2")}>
                   <SelectTrigger className="w-48">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Grammar</SelectItem>
-                    <SelectItem value="2">Vocabulary</SelectItem>
+                    <SelectItem value="1">Ngữ pháp</SelectItem>
+                    <SelectItem value="2">Từ vựng</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-xl overflow-hidden">
                 <div className="max-h-96 overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">#</TableHead>
-                        <TableHead>Question</TableHead>
-                        <TableHead>Correct</TableHead>
-                        <TableHead className="w-24">Status</TableHead>
+                        <TableHead>Câu hỏi</TableHead>
+                        <TableHead>Đáp án đúng</TableHead>
+                        <TableHead className="w-24">Trạng thái</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -297,10 +302,10 @@ export function ImportCsvPanel() {
                           <TableCell>
                             {item.valid ? (
                               <Badge variant="outline" className="text-success border-success">
-                                Valid
+                                OK
                               </Badge>
                             ) : (
-                              <Badge variant="destructive">Invalid</Badge>
+                              <Badge variant="destructive">Lỗi</Badge>
                             )}
                           </TableCell>
                         </TableRow>
@@ -312,10 +317,10 @@ export function ImportCsvPanel() {
 
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={resetForm}>
-                  Cancel
+                  Hủy
                 </Button>
-                <Button onClick={handleImport} disabled={validCount === 0}>
-                  Import {validCount} Questions
+                <Button onClick={handleImport} disabled={validCount === 0} className="bg-gradient-fun hover:opacity-90">
+                  Nhập {validCount} câu hỏi
                 </Button>
               </div>
             </CardContent>
@@ -324,21 +329,21 @@ export function ImportCsvPanel() {
       )}
 
       {step === "success" && (
-        <Card className="border-border/50">
+        <Card className="border-success/50 bg-success/5">
           <CardContent className="py-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-success" />
+            <div className="w-20 h-20 rounded-2xl bg-gradient-success flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <PartyPopper className="w-10 h-10 text-success-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Import Successful!</h3>
+            <h3 className="text-2xl font-bold mb-2">Nhập thành công!</h3>
             <p className="text-muted-foreground mb-6">
-              {validCount} questions have been added to your dataset.
+              Đã thêm {validCount} câu hỏi vào bộ dữ liệu của bạn.
             </p>
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-center gap-3">
               <Button variant="outline" onClick={resetForm}>
-                Import More
+                Nhập thêm
               </Button>
-              <Button asChild>
-                <a href="/datasets">View Datasets</a>
+              <Button asChild className="bg-gradient-fun hover:opacity-90">
+                <a href="/datasets">Xem bộ dữ liệu</a>
               </Button>
             </div>
           </CardContent>

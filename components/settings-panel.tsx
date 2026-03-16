@@ -26,6 +26,8 @@ import {
   Volume2,
   Clock,
   Trash2,
+  Palette,
+  Zap,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -35,12 +37,12 @@ export function SettingsPanel() {
   const handleDarkModeToggle = (checked: boolean) => {
     updateSettings({ darkMode: checked })
     document.documentElement.classList.toggle("dark", checked)
-    toast.success(`${checked ? "Dark" : "Light"} mode enabled`)
+    toast.success(`Đã bật chế độ ${checked ? "tối" : "sáng"}`)
   }
 
   const handleResetData = () => {
     resetAllData()
-    toast.success("All data has been reset")
+    toast.success("Đã xóa tất cả dữ liệu")
   }
 
   return (
@@ -49,26 +51,28 @@ export function SettingsPanel() {
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Appearance
+            <Palette className="w-5 h-5 text-primary" />
+            Giao diện
           </CardTitle>
           <CardDescription>
-            Customize the look and feel of the app
+            Tùy chỉnh giao diện ứng dụng theo ý thích của bạn
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Dark Mode */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {settings.darkMode ? (
-                <Moon className="w-5 h-5 text-primary" />
-              ) : (
-                <Sun className="w-5 h-5 text-yellow-500" />
-              )}
+          <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl">
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${settings.darkMode ? "bg-indigo-500/20" : "bg-amber-500/20"}`}>
+                {settings.darkMode ? (
+                  <Moon className="w-6 h-6 text-indigo-500" />
+                ) : (
+                  <Sun className="w-6 h-6 text-amber-500" />
+                )}
+              </div>
               <div>
-                <Label>Dark Mode</Label>
+                <Label className="text-base font-medium">Chế độ tối</Label>
                 <p className="text-sm text-muted-foreground">
-                  Toggle dark/light theme
+                  Bật/tắt giao diện tối
                 </p>
               </div>
             </div>
@@ -79,13 +83,15 @@ export function SettingsPanel() {
           </div>
 
           {/* Animation */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-primary" />
+          <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-chart-1/20 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-chart-1" />
+              </div>
               <div>
-                <Label>Animations</Label>
+                <Label className="text-base font-medium">Hiệu ứng</Label>
                 <p className="text-sm text-muted-foreground">
-                  Enable/disable UI animations
+                  Bật/tắt hiệu ứng chuyển động
                 </p>
               </div>
             </div>
@@ -98,13 +104,15 @@ export function SettingsPanel() {
           </div>
 
           {/* Sound */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Volume2 className="w-5 h-5 text-primary" />
+          <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-chart-2/20 flex items-center justify-center">
+                <Volume2 className="w-6 h-6 text-chart-2" />
+              </div>
               <div>
-                <Label>Sound Effects</Label>
+                <Label className="text-base font-medium">Âm thanh</Label>
                 <p className="text-sm text-muted-foreground">
-                  Enable/disable sound effects
+                  Bật/tắt hiệu ứng âm thanh
                 </p>
               </div>
             </div>
@@ -122,18 +130,19 @@ export function SettingsPanel() {
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Grid className="w-5 h-5" />
-            Game Settings
+            <Grid className="w-5 h-5 text-primary" />
+            Cài đặt trò chơi
           </CardTitle>
           <CardDescription>
-            Configure game board and play options
+            Tùy chỉnh bảng game và cách chơi
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Board Columns */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Board Columns: {settings.boardColumns}</Label>
+          <div className="p-4 bg-secondary/50 rounded-xl">
+            <div className="flex items-center justify-between mb-4">
+              <Label className="text-base font-medium">Số cột bảng: {settings.boardColumns}</Label>
+              <span className="text-sm text-muted-foreground">{settings.boardColumns} cột</span>
             </div>
             <Slider
               value={[settings.boardColumns]}
@@ -142,8 +151,8 @@ export function SettingsPanel() {
               max={8}
               step={1}
             />
-            <p className="text-sm text-muted-foreground mt-2">
-              Number of columns in the game board grid
+            <p className="text-sm text-muted-foreground mt-3">
+              Số cột hiển thị trong bảng game (2-8 cột)
             </p>
           </div>
         </CardContent>
@@ -153,18 +162,19 @@ export function SettingsPanel() {
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Flashcard Settings
+            <Clock className="w-5 h-5 text-primary" />
+            Cài đặt Flashcard
           </CardTitle>
           <CardDescription>
-            Configure auto-play timing
+            Tùy chỉnh thời gian phát tự động
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Front Time */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Front Side Time: {settings.autoPlayFrontTime}s</Label>
+          <div className="p-4 bg-secondary/50 rounded-xl">
+            <div className="flex items-center justify-between mb-4">
+              <Label className="text-base font-medium">Mặt trước</Label>
+              <span className="text-sm text-muted-foreground">{settings.autoPlayFrontTime} giây</span>
             </div>
             <Slider
               value={[settings.autoPlayFrontTime]}
@@ -178,9 +188,10 @@ export function SettingsPanel() {
           </div>
 
           {/* Back Time */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Back Side Time: {settings.autoPlayBackTime}s</Label>
+          <div className="p-4 bg-secondary/50 rounded-xl">
+            <div className="flex items-center justify-between mb-4">
+              <Label className="text-base font-medium">Mặt sau</Label>
+              <span className="text-sm text-muted-foreground">{settings.autoPlayBackTime} giây</span>
             </div>
             <Slider
               value={[settings.autoPlayBackTime]}
@@ -196,39 +207,39 @@ export function SettingsPanel() {
       </Card>
 
       {/* Data Management */}
-      <Card className="border-destructive/50">
+      <Card className="border-destructive/30 bg-destructive/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
             <Trash2 className="w-5 h-5" />
-            Data Management
+            Quản lý dữ liệu
           </CardTitle>
           <CardDescription>
-            Reset all app data (this cannot be undone)
+            Xóa tất cả dữ liệu ứng dụng (không thể hoàn tác)
           </CardDescription>
         </CardHeader>
         <CardContent>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive">
+              <Button variant="destructive" className="w-full sm:w-auto">
                 <Trash2 className="w-4 h-4 mr-2" />
-                Reset All Data
+                Xóa tất cả dữ liệu
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>Bạn có chắc chắn?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will delete all datasets, players, game history, and reset all settings to default.
-                  This action cannot be undone.
+                  Thao tác này sẽ xóa tất cả bộ dữ liệu, người chơi, lịch sử chơi, và đặt lại tất cả cài đặt về mặc định. 
+                  Hành động này không thể hoàn tác.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>Hủy</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleResetData}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Yes, Reset Everything
+                  Xóa tất cả
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
