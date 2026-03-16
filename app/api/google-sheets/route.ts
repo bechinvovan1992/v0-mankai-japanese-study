@@ -6,7 +6,7 @@ import type { Dataset, Question } from "@/lib/types"
 // The SPREADSHEET_ID is extracted from your Google Sheet URL:
 // https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit
 const SPREADSHEET_ID = "1D3CHYhGkmlsE1a10DgS6l_qyYU-L3Upeh5zgXWjDUJY"
-const API_KEY = "AIzaSyB7X_P9Bj5EzGeIAbzrsR9Y9o1cm7deYDE"
+const DEFAULT_API_KEY = "AIzaSyB7X_P9Bj5EzGeIAbzrsR9Y9o1cm7deYDE"
 
 function generateId() {
   return Math.random().toString(36).substring(2, 15)
@@ -16,7 +16,11 @@ function generateId() {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const action = searchParams.get("action")
-  const sheetName = searchParams.get("sheet")
+  const sheetName = searchParams.get("sheetName") || searchParams.get("sheet")
+  const apiKeyParam = searchParams.get("apiKey")
+  
+  // Use provided API key or fall back to default
+  const API_KEY = apiKeyParam || DEFAULT_API_KEY
 
   try {
     // Action: getConfig - Return current configuration for debugging

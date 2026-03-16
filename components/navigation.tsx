@@ -5,8 +5,6 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
-  Database,
-  Users,
   Gamepad2,
   BookOpen,
   Settings,
@@ -19,10 +17,8 @@ import { useState } from "react"
 
 const navItems = [
   { href: "/", label: "Trang chủ", icon: LayoutDashboard },
-  { href: "/datasets", label: "Bộ dữ liệu", icon: Database },
-  { href: "/players", label: "Người chơi", icon: Users },
   { href: "/game", label: "Trò chơi", icon: Gamepad2 },
-  { href: "/flashcard", label: "Flashcard", icon: BookOpen },
+  { href: "/review", label: "Ôn tập", icon: BookOpen },
   { href: "/settings", label: "Cài đặt", icon: Settings },
 ]
 

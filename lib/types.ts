@@ -68,6 +68,7 @@ export interface Settings {
   autoPlayFrontTime: number
   autoPlayBackTime: number
   googleSheetUrl: string
+  googleApiKey: string
 }
 
 export interface DataIndex {

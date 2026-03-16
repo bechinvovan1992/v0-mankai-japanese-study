@@ -1,11 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import { useAppStore } from "@/lib/store"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
+import { Input } from "@/components/ui/input"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,18 +28,27 @@ import {
   Trash2,
   Palette,
   Zap,
-  FileSpreadsheet,
-  CheckCircle,
+  Key,
+  Save,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import { toast } from "sonner"
 
 export function SettingsPanel() {
   const { settings, updateSettings, resetAllData } = useAppStore()
+  const [apiKeyInput, setApiKeyInput] = useState(settings.googleApiKey)
+  const [showApiKey, setShowApiKey] = useState(false)
 
   const handleDarkModeToggle = (checked: boolean) => {
     updateSettings({ darkMode: checked })
     document.documentElement.classList.toggle("dark", checked)
     toast.success(`Da bat che do ${checked ? "toi" : "sang"}`)
+  }
+
+  const handleSaveApiKey = () => {
+    updateSettings({ googleApiKey: apiKeyInput })
+    toast.success("Da luu API Key")
   }
 
   const handleResetData = () => {
@@ -47,29 +58,50 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Google Sheet Info - Hardcoded */}
+      {/* API Key Configuration */}
       <Card className="border-primary/30 bg-primary/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
-            <FileSpreadsheet className="w-5 h-5" />
-            Google Sheet
+            <Key className="w-5 h-5" />
+            Google API Key
           </CardTitle>
           <CardDescription>
-            Du lieu duoc tai tu Google Sheet da cau hinh san
+            Cau hinh API Key de ket noi voi Google Sheets. Thay doi neu API Key cu het hieu luc.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg border border-success/30">
-            <CheckCircle className="w-4 h-4 text-success" />
-            <span className="text-sm text-success font-medium">Da ket noi Google Sheet</span>
-          </div>
-          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm font-medium mb-2">Dinh dang du lieu:</p>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p><strong>Day du (8 cot):</strong> type | question | answer1 | answer2 | answer3 | answer4 | correct | explain</p>
-              <p><strong>Don gian (3 cot):</strong> type | question | answer</p>
-              <p className="mt-2"><em>type: 1 = Ngu phap, 2 = Tu vung</em></p>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                type={showApiKey ? "text" : "password"}
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder="Nhap Google API Key..."
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full"
+                onClick={() => setShowApiKey(!showApiKey)}
+              >
+                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </Button>
             </div>
+            <Button onClick={handleSaveApiKey} disabled={!apiKeyInput.trim()}>
+              <Save className="w-4 h-4 mr-1" />
+              Luu
+            </Button>
+          </div>
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <p className="text-sm font-medium mb-2">Huong dan lay API Key:</p>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Truy cap Google Cloud Console</li>
+              <li>Tao project moi hoac chon project hien co</li>
+              <li>Bat Google Sheets API</li>
+              <li>Tao API Key va dan vao day</li>
+            </ol>
           </div>
         </CardContent>
       </Card>
@@ -190,7 +222,7 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" />
-            Cai dat Flashcard
+            Cai dat On tap
           </CardTitle>
           <CardDescription>
             Tuy chinh thoi gian phat tu dong

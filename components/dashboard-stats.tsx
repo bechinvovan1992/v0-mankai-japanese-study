@@ -14,7 +14,6 @@ import {
   Settings,
   Sparkles,
   Star,
-  Rocket,
 } from "lucide-react"
 
 export function DashboardStats() {
@@ -58,29 +57,22 @@ export function DashboardStats() {
 
   const quickActions = [
     {
-      title: "Bộ dữ liệu",
-      description: "Xem và chọn bộ dữ liệu",
-      href: "/datasets",
-      icon: Database,
-      gradient: "from-pink-500 to-rose-500",
-    },
-    {
-      title: "Chơi Game",
-      description: "Chơi quiz cùng bạn bè",
+      title: "Tro choi",
+      description: "Chon du lieu, nguoi choi va bat dau",
       href: "/game",
       icon: Gamepad2,
       gradient: "from-violet-500 to-purple-500",
     },
     {
-      title: "Học Flashcard",
-      description: "Ôn tập với thẻ ghi nhớ",
-      href: "/flashcard",
+      title: "On tap",
+      description: "On tap voi the ghi nho",
+      href: "/review",
       icon: BookMarked,
       gradient: "from-emerald-500 to-teal-500",
     },
     {
-      title: "Cài đặt",
-      description: "Cấu hình Google Sheet",
+      title: "Cai dat",
+      description: "Cau hinh API Key & giao dien",
       href: "/settings",
       icon: Settings,
       gradient: "from-amber-500 to-orange-500",
@@ -134,8 +126,8 @@ export function DashboardStats() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Rocket className="w-5 h-5 text-primary" />
-          Bắt đầu nhanh
+          <Sparkles className="w-5 h-5 text-primary" />
+          Bat dau nhanh
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action) => {

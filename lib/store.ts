@@ -75,6 +75,7 @@ const defaultSettings: Settings = {
   autoPlayFrontTime: 3,
   autoPlayBackTime: 3,
   googleSheetUrl: "",
+  googleApiKey: "AIzaSyB7X_P9Bj5EzGeIAbzrsR9Y9o1cm7deYDE",
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15)
