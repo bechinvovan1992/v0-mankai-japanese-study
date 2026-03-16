@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Upload, FileText, Check, AlertCircle, X, Sparkles, PartyPopper } from "lucide-react"
 import { toast } from "sonner"
 
@@ -38,15 +39,27 @@ interface ParsedQuestion {
   errors: string[]
 }
 
+interface ParsedSimpleQuestion {
+  type: number
+  question: string
+  answer: string
+  valid: boolean
+  errors: string[]
+}
+
+type CsvFormat = "full" | "simple"
+
 export function ImportCsvPanel() {
   const { addDataset } = useAppStore()
   const [file, setFile] = useState<File | null>(null)
   const [parsedData, setParsedData] = useState<ParsedQuestion[]>([])
+  const [parsedSimpleData, setParsedSimpleData] = useState<ParsedSimpleQuestion[]>([])
   const [datasetType, setDatasetType] = useState<"1" | "2">("1")
+  const [csvFormat, setCsvFormat] = useState<CsvFormat>("full")
   const [isLoading, setIsLoading] = useState(false)
   const [step, setStep] = useState<"upload" | "preview" | "success">("upload")
 
-  const parseCSV = useCallback((text: string): ParsedQuestion[] => {
+  const parseFullCSV = useCallback((text: string): ParsedQuestion[] => {
     const lines = text.trim().split("\n")
     const results: ParsedQuestion[] = []
 
@@ -116,6 +129,63 @@ export function ImportCsvPanel() {
     return results
   }, [])
 
+  const parseSimpleCSV = useCallback((text: string): ParsedSimpleQuestion[] => {
+    const lines = text.trim().split("\n")
+    const results: ParsedSimpleQuestion[] = []
+
+    // Skip header if exists
+    const startIndex = lines[0]?.toLowerCase().includes("type") ? 1 : 0
+
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i].trim()
+      if (!line) continue
+
+      // Parse CSV line handling quoted values
+      const values: string[] = []
+      let current = ""
+      let inQuotes = false
+
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j]
+        if (char === '"') {
+          inQuotes = !inQuotes
+        } else if (char === "," && !inQuotes) {
+          values.push(current.trim())
+          current = ""
+        } else {
+          current += char
+        }
+      }
+      values.push(current.trim())
+
+      const errors: string[] = []
+      const type = parseInt(values[0]) || 0
+      const question = values[1] || ""
+      const answer = values[2] || ""
+
+      // Validation
+      if (type !== 1 && type !== 2) {
+        errors.push("Loại phải là 1 (ngữ pháp) hoặc 2 (từ vựng)")
+      }
+      if (!question) {
+        errors.push("Câu hỏi là bắt buộc")
+      }
+      if (!answer) {
+        errors.push("Đáp án là bắt buộc")
+      }
+
+      results.push({
+        type,
+        question,
+        answer,
+        valid: errors.length === 0,
+        errors,
+      })
+    }
+
+    return results
+  }, [])
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (!selectedFile) return
@@ -125,8 +195,17 @@ export function ImportCsvPanel() {
 
     try {
       const text = await selectedFile.text()
-      const parsed = parseCSV(text)
-      setParsedData(parsed)
+      
+      if (csvFormat === "full") {
+        const parsed = parseFullCSV(text)
+        setParsedData(parsed)
+        setParsedSimpleData([])
+      } else {
+        const parsed = parseSimpleCSV(text)
+        setParsedSimpleData(parsed)
+        setParsedData([])
+      }
+      
       setStep("preview")
     } catch {
       toast.error("Không thể đọc file")
@@ -136,24 +215,45 @@ export function ImportCsvPanel() {
   }
 
   const handleImport = () => {
-    const validQuestions = parsedData.filter((q) => q.valid)
-    if (validQuestions.length === 0) {
-      toast.error("Không có câu hỏi hợp lệ để nhập")
-      return
-    }
-
     const now = new Date()
     const fileName = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.json`
 
-    const questions: Question[] = validQuestions.map((q, index) => ({
-      id: `${Date.now()}-${index}`,
-      type: (parseInt(datasetType) as 1 | 2) || (q.type as 1 | 2),
-      question: q.question,
-      answers: [q.answer1, q.answer2, q.answer3, q.answer4],
-      correct: q[q.correct as keyof ParsedQuestion] as string,
-      explain: q.explain,
-      played: false,
-    }))
+    let questions: Question[] = []
+
+    if (csvFormat === "full") {
+      const validQuestions = parsedData.filter((q) => q.valid)
+      if (validQuestions.length === 0) {
+        toast.error("Không có câu hỏi hợp lệ để nhập")
+        return
+      }
+
+      questions = validQuestions.map((q, index) => ({
+        id: `${Date.now()}-${index}`,
+        type: (parseInt(datasetType) as 1 | 2) || (q.type as 1 | 2),
+        question: q.question,
+        answers: [q.answer1, q.answer2, q.answer3, q.answer4],
+        correct: q[q.correct as keyof ParsedQuestion] as string,
+        explain: q.explain,
+        played: false,
+      }))
+    } else {
+      const validQuestions = parsedSimpleData.filter((q) => q.valid)
+      if (validQuestions.length === 0) {
+        toast.error("Không có câu hỏi hợp lệ để nhập")
+        return
+      }
+
+      // For simple format, create questions with single answer (answer is used as correct)
+      questions = validQuestions.map((q, index) => ({
+        id: `${Date.now()}-${index}`,
+        type: (parseInt(datasetType) as 1 | 2) || (q.type as 1 | 2),
+        question: q.question,
+        answers: [q.answer, "", "", ""], // Only first answer is used
+        correct: q.answer,
+        explain: "",
+        played: false,
+      }))
+    }
 
     const dataset: Dataset = {
       id: `dataset-${Date.now()}`,
@@ -172,11 +272,16 @@ export function ImportCsvPanel() {
   const resetForm = () => {
     setFile(null)
     setParsedData([])
+    setParsedSimpleData([])
     setStep("upload")
   }
 
-  const validCount = parsedData.filter((q) => q.valid).length
-  const invalidCount = parsedData.filter((q) => !q.valid).length
+  const validCount = csvFormat === "full" 
+    ? parsedData.filter((q) => q.valid).length
+    : parsedSimpleData.filter((q) => q.valid).length
+  const invalidCount = csvFormat === "full"
+    ? parsedData.filter((q) => !q.valid).length
+    : parsedSimpleData.filter((q) => !q.valid).length
 
   return (
     <div className="space-y-6">
@@ -189,6 +294,17 @@ export function ImportCsvPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* CSV Format Selection */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Chọn định dạng CSV</Label>
+              <Tabs value={csvFormat} onValueChange={(v) => setCsvFormat(v as CsvFormat)} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="full">Đầy đủ (8 cột)</TabsTrigger>
+                  <TabsTrigger value="simple">Đơn giản (3 cột)</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
             <div className="border-2 border-dashed border-primary/30 rounded-2xl p-10 text-center bg-primary/5 hover:bg-primary/10 transition-colors">
               <input
                 type="file"
@@ -218,17 +334,42 @@ export function ImportCsvPanel() {
                 <Sparkles className="w-4 h-4 text-primary" />
                 Định dạng CSV
               </h4>
-              <code className="text-xs text-muted-foreground block bg-background/50 p-3 rounded-lg">
-                type,question,answer1,answer2,answer3,answer4,correct,explain
-              </code>
-              <div className="mt-4 text-sm text-muted-foreground space-y-2">
-                <p>
-                  <strong className="text-foreground">type:</strong> 1 = ngữ pháp, 2 = từ vựng
-                </p>
-                <p>
-                  <strong className="text-foreground">correct:</strong> answer1, answer2, answer3, hoặc answer4
-                </p>
-              </div>
+              
+              {csvFormat === "full" ? (
+                <>
+                  <code className="text-xs text-muted-foreground block bg-background/50 p-3 rounded-lg">
+                    type,question,answer1,answer2,answer3,answer4,correct,explain
+                  </code>
+                  <div className="mt-4 text-sm text-muted-foreground space-y-2">
+                    <p>
+                      <strong className="text-foreground">type:</strong> 1 = ngữ pháp, 2 = từ vựng
+                    </p>
+                    <p>
+                      <strong className="text-foreground">correct:</strong> answer1, answer2, answer3, hoặc answer4
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <code className="text-xs text-muted-foreground block bg-background/50 p-3 rounded-lg">
+                    type,question,answer
+                  </code>
+                  <div className="mt-4 text-sm text-muted-foreground space-y-2">
+                    <p>
+                      <strong className="text-foreground">type:</strong> 1 = ngữ pháp, 2 = từ vựng
+                    </p>
+                    <p>
+                      <strong className="text-foreground">question:</strong> Câu hỏi hoặc từ cần học
+                    </p>
+                    <p>
+                      <strong className="text-foreground">answer:</strong> Đáp án hoặc nghĩa của từ
+                    </p>
+                    <p className="text-primary font-medium mt-2">
+                      Định dạng này phù hợp cho flashcard và học từ vựng đơn giản.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -263,6 +404,9 @@ export function ImportCsvPanel() {
                     </Badge>
                   )}
                 </div>
+                <Badge variant="outline">
+                  Định dạng: {csvFormat === "full" ? "Đầy đủ" : "Đơn giản"}
+                </Badge>
               </div>
 
               <div className="flex items-center gap-4">
@@ -285,31 +429,54 @@ export function ImportCsvPanel() {
                       <TableRow>
                         <TableHead className="w-12">#</TableHead>
                         <TableHead>Câu hỏi</TableHead>
-                        <TableHead>Đáp án đúng</TableHead>
+                        <TableHead>Đáp án</TableHead>
                         <TableHead className="w-24">Trạng thái</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {parsedData.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{index + 1}</TableCell>
-                          <TableCell className="max-w-xs truncate">
-                            {item.question}
-                          </TableCell>
-                          <TableCell>
-                            {item[item.correct as keyof ParsedQuestion] as string}
-                          </TableCell>
-                          <TableCell>
-                            {item.valid ? (
-                              <Badge variant="outline" className="text-success border-success">
-                                OK
-                              </Badge>
-                            ) : (
-                              <Badge variant="destructive">Lỗi</Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {csvFormat === "full" ? (
+                        parsedData.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{index + 1}</TableCell>
+                            <TableCell className="max-w-xs truncate">
+                              {item.question}
+                            </TableCell>
+                            <TableCell>
+                              {item[item.correct as keyof ParsedQuestion] as string}
+                            </TableCell>
+                            <TableCell>
+                              {item.valid ? (
+                                <Badge variant="outline" className="text-success border-success">
+                                  OK
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive">Lỗi</Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        parsedSimpleData.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{index + 1}</TableCell>
+                            <TableCell className="max-w-xs truncate">
+                              {item.question}
+                            </TableCell>
+                            <TableCell>
+                              {item.answer}
+                            </TableCell>
+                            <TableCell>
+                              {item.valid ? (
+                                <Badge variant="outline" className="text-success border-success">
+                                  OK
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive">Lỗi</Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </div>

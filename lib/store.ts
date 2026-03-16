@@ -2,7 +2,7 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { Dataset, Player, GameRound, Settings, Question } from "./types"
+import type { Dataset, Player, GameRound, Settings, Question, GameMode, Team } from "./types"
 
 interface AppState {
   // Datasets
@@ -26,21 +26,33 @@ interface AppState {
 
   // Game
   gameRound: GameRound | null
+  selectedGameMode: GameMode
+  setGameMode: (mode: GameMode) => void
   startGame: () => void
   endGame: () => void
   markQuestionPlayed: (questionId: string, correct: boolean) => void
   nextPlayer: () => void
+  eliminatePlayer: (playerId: string) => void
+  setupTeams: (numTeams: number) => void
+  nextTeam: () => void
+  addTeamScore: (teamId: string, points: number) => void
 
   // Flashcard
   flashcardQuestions: Question[]
   currentFlashcardIndex: number
-  flashcardFilter: "all" | "grammar" | "vocabulary"
-  setFlashcardFilter: (filter: "all" | "grammar" | "vocabulary") => void
+  flashcardFilter: "all" | "grammar" | "vocabulary" | "wrong"
+  flashcardMode: "flip" | "guess" | "quiz"
+  wrongAnswerIds: string[]
+  setFlashcardFilter: (filter: "all" | "grammar" | "vocabulary" | "wrong") => void
+  setFlashcardMode: (mode: "flip" | "guess" | "quiz") => void
   loadFlashcards: () => void
   nextFlashcard: () => void
   prevFlashcard: () => void
   shuffleFlashcards: () => void
   setFlashcardIndex: (index: number) => void
+  markFlashcardWrong: (questionId: string) => void
+  markFlashcardCorrect: (questionId: string) => void
+  clearWrongAnswers: () => void
 
   // Settings
   settings: Settings
@@ -134,6 +146,8 @@ export const useAppStore = create<AppState>()(
 
       // Game
       gameRound: null,
+      selectedGameMode: "guess",
+      setGameMode: (mode) => set({ selectedGameMode: mode }),
       startGame: () => {
         const state = get()
         const selectedDatasets = state.datasets.filter((d) =>
@@ -177,6 +191,8 @@ export const useAppStore = create<AppState>()(
             currentPlayerIndex: 0,
             totalQuestions: shuffledQuestions.length,
             remainingQuestions: shuffledQuestions.length,
+            gameMode: state.selectedGameMode,
+            suddenDeathEliminated: [],
           },
         })
       },
@@ -217,12 +233,81 @@ export const useAppStore = create<AppState>()(
       nextPlayer: () =>
         set((state) => {
           if (!state.gameRound) return state
-          const nextIndex =
-            (state.gameRound.currentPlayerIndex + 1) % state.gameRound.players.length
+          // For sudden death, skip eliminated players
+          let nextIndex = (state.gameRound.currentPlayerIndex + 1) % state.gameRound.players.length
+          if (state.gameRound.gameMode === "suddendeath" && state.gameRound.suddenDeathEliminated) {
+            let attempts = 0
+            while (
+              state.gameRound.suddenDeathEliminated.includes(state.gameRound.players[nextIndex].id) &&
+              attempts < state.gameRound.players.length
+            ) {
+              nextIndex = (nextIndex + 1) % state.gameRound.players.length
+              attempts++
+            }
+          }
           return {
             gameRound: {
               ...state.gameRound,
               currentPlayerIndex: nextIndex,
+            },
+          }
+        }),
+      eliminatePlayer: (playerId) =>
+        set((state) => {
+          if (!state.gameRound) return state
+          return {
+            gameRound: {
+              ...state.gameRound,
+              suddenDeathEliminated: [
+                ...(state.gameRound.suddenDeathEliminated || []),
+                playerId,
+              ],
+            },
+          }
+        }),
+      setupTeams: (numTeams) =>
+        set((state) => {
+          if (!state.gameRound) return state
+          const shuffledPlayers = [...state.gameRound.players].sort(() => Math.random() - 0.5)
+          const teams: Team[] = []
+          for (let i = 0; i < numTeams; i++) {
+            teams.push({
+              id: generateId(),
+              name: `Đội ${i + 1}`,
+              players: [],
+              score: 0,
+            })
+          }
+          shuffledPlayers.forEach((player, index) => {
+            teams[index % numTeams].players.push(player)
+          })
+          return {
+            gameRound: {
+              ...state.gameRound,
+              teams,
+              currentTeamIndex: 0,
+            },
+          }
+        }),
+      nextTeam: () =>
+        set((state) => {
+          if (!state.gameRound || !state.gameRound.teams) return state
+          return {
+            gameRound: {
+              ...state.gameRound,
+              currentTeamIndex: ((state.gameRound.currentTeamIndex || 0) + 1) % state.gameRound.teams.length,
+            },
+          }
+        }),
+      addTeamScore: (teamId, points) =>
+        set((state) => {
+          if (!state.gameRound || !state.gameRound.teams) return state
+          return {
+            gameRound: {
+              ...state.gameRound,
+              teams: state.gameRound.teams.map((t) =>
+                t.id === teamId ? { ...t, score: t.score + points } : t
+              ),
             },
           }
         }),
@@ -231,7 +316,10 @@ export const useAppStore = create<AppState>()(
       flashcardQuestions: [],
       currentFlashcardIndex: 0,
       flashcardFilter: "all",
+      flashcardMode: "flip",
+      wrongAnswerIds: [],
       setFlashcardFilter: (filter) => set({ flashcardFilter: filter }),
+      setFlashcardMode: (mode) => set({ flashcardMode: mode }),
       loadFlashcards: () => {
         const state = get()
         const selectedDatasets = state.datasets.filter((d) =>
@@ -243,6 +331,8 @@ export const useAppStore = create<AppState>()(
           questions = questions.filter((q) => q.type === 1)
         } else if (state.flashcardFilter === "vocabulary") {
           questions = questions.filter((q) => q.type === 2)
+        } else if (state.flashcardFilter === "wrong") {
+          questions = questions.filter((q) => state.wrongAnswerIds.includes(q.id))
         }
 
         set({ flashcardQuestions: questions, currentFlashcardIndex: 0 })
@@ -267,6 +357,17 @@ export const useAppStore = create<AppState>()(
           currentFlashcardIndex: 0,
         })),
       setFlashcardIndex: (index) => set({ currentFlashcardIndex: index }),
+      markFlashcardWrong: (questionId) =>
+        set((state) => ({
+          wrongAnswerIds: state.wrongAnswerIds.includes(questionId)
+            ? state.wrongAnswerIds
+            : [...state.wrongAnswerIds, questionId],
+        })),
+      markFlashcardCorrect: (questionId) =>
+        set((state) => ({
+          wrongAnswerIds: state.wrongAnswerIds.filter((id) => id !== questionId),
+        })),
+      clearWrongAnswers: () => set({ wrongAnswerIds: [] }),
 
       // Settings
       settings: defaultSettings,
