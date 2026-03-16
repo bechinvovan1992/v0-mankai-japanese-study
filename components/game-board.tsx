@@ -462,47 +462,46 @@ export function GameBoard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Game Info Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className={`p-4 rounded-xl bg-gradient-to-r ${currentPlayerColor} text-white shadow-lg`}>
-          <div className="flex items-center gap-3">
-            <Star className="w-6 h-6" />
-            <div>
-              <span className="text-xl font-bold">
-                Lượt của {currentPlayer?.name}
+    <div className="space-y-4 md:space-y-6">
+      {/* Game Info Bar - Mobile Optimized */}
+      <div className="space-y-3">
+        {/* Player Turn & Stats - Mobile Row */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <div className={`shrink-0 px-3 py-2 rounded-lg bg-gradient-to-r ${currentPlayerColor} text-white shadow-md`}>
+            <div className="flex items-center gap-2">
+              <Star className="w-4 h-4" />
+              <span className="text-sm font-bold whitespace-nowrap">
+                {currentPlayer?.name}
               </span>
-              {gameRound.gameMode === "teambattle" && gameRound.teams && (
-                <p className="text-sm opacity-90">
-                  {gameRound.teams[gameRound.currentTeamIndex || 0]?.name}
-                </p>
-              )}
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <Badge variant="outline" className="py-1.5 px-3">
+          <Badge variant="outline" className="shrink-0 py-1 px-2 text-xs">
             {gameModes.find((m) => m.id === gameRound.gameMode)?.name}
           </Badge>
-          <div className="text-sm text-muted-foreground bg-secondary/50 px-4 py-2 rounded-lg">
+          <div className="shrink-0 text-xs text-muted-foreground bg-secondary/50 px-2 py-1.5 rounded-md whitespace-nowrap">
             Còn {gameRound.remainingQuestions}/{gameRound.totalQuestions} câu
           </div>
-          <Button variant="outline" onClick={() => setShowScoreboard(true)} className="hover:bg-primary/10">
-            <Trophy className="w-4 h-4 mr-2 text-warning" />
-            Bảng điểm
+        </div>
+        
+        {/* Action Buttons - Scrollable Row */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <Button variant="outline" size="sm" onClick={() => setShowScoreboard(true)} className="shrink-0">
+            <Trophy className="w-4 h-4 mr-1 text-warning" />
+            <span className="hidden sm:inline">Bảng điểm</span>
           </Button>
           <Button 
             variant="outline" 
-            size="icon"
+            size="sm"
             onClick={handleToggleMusic}
             title={isMusicPlaying ? "Tắt nhạc" : "Bật nhạc"}
+            className="shrink-0"
           >
             {isMusicPlaying ? <Music className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </Button>
-          <Button variant="outline" onClick={handlePlayAgain}>
+          <Button variant="outline" size="sm" onClick={handlePlayAgain} className="shrink-0">
             Chơi lại
           </Button>
-          <Button variant="destructive" onClick={() => { stopBgMusic(); endGame(); }}>
+          <Button variant="destructive" size="sm" onClick={() => { stopBgMusic(); endGame(); }} className="shrink-0">
             Kết thúc
           </Button>
         </div>
@@ -582,29 +581,35 @@ export function GameBoard() {
       ) : (
         /* Game Board Grid */
         <div
-          className="grid gap-3"
-          style={{ gridTemplateColumns: `repeat(${boardColumns}, minmax(0, 1fr))` }}
+          className={cn(
+            "grid gap-2 md:gap-3",
+            "grid-cols-3 sm:grid-cols-4",
+            boardColumns >= 5 && "md:grid-cols-5",
+            boardColumns >= 6 && "lg:grid-cols-6",
+            boardColumns >= 7 && "xl:grid-cols-7",
+            boardColumns >= 8 && "2xl:grid-cols-8"
+          )}
         >
           {allQuestions.map((question, index) => (
             <div key={question.id} className="relative">
               <button
                 onClick={() => handleCellClick(question)}
                 className={cn(
-                  "w-full aspect-square rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-2 text-center shadow-sm",
+                  "w-full aspect-square rounded-xl md:rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-1 md:p-2 text-center shadow-sm",
                   question.played
                     ? "bg-success/10 border-success/30 cursor-pointer hover:bg-success/20"
-                    : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg hover:scale-105 cursor-pointer"
+                    : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg active:scale-95 md:hover:scale-105 cursor-pointer"
                 )}
               >
                 {question.played ? (
-                  <div className="flex flex-col items-center gap-1 w-full">
-                    <Check className="w-6 h-6 text-success" />
-                    <span className="text-xs text-muted-foreground truncate w-full px-1">
-                      {question.question.slice(0, 20)}...
+                  <div className="flex flex-col items-center gap-0.5 md:gap-1 w-full">
+                    <Check className="w-5 h-5 md:w-6 md:h-6 text-success" />
+                    <span className="text-[10px] md:text-xs text-muted-foreground truncate w-full px-1">
+                      {question.question.slice(0, 12)}...
                     </span>
                   </div>
                 ) : (
-                  <span className="text-2xl font-bold bg-gradient-to-br from-primary to-chart-5 bg-clip-text text-transparent">
+                  <span className="text-xl md:text-2xl font-bold bg-gradient-to-br from-primary to-chart-5 bg-clip-text text-transparent">
                     {index + 1}
                   </span>
                 )}
