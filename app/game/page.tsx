@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { GameSetup } from "@/components/game-setup"
 import { GameBoard } from "@/components/game-board"
@@ -9,7 +9,6 @@ import { useGameSounds } from "@/hooks/use-game-sounds"
 import { toast } from "sonner"
 
 export default function GamePage() {
-  const [showGame, setShowGame] = useState(false)
   const { startGame, setupTeams, selectedGameMode, gameRound } = useAppStore()
   const { playGameStart, startBgMusic } = useGameSounds()
 
@@ -20,12 +19,12 @@ export default function GamePage() {
       setupTeams(2)
     }
     startBgMusic()
-    setShowGame(true)
     toast.success("Bắt đầu trò chơi!")
   }
 
   // If game is in progress, show game board
-  if (gameRound || showGame) {
+  // When gameRound is null (after endGame), automatically go back to setup
+  if (gameRound) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />

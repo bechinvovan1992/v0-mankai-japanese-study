@@ -196,7 +196,7 @@ export function GameBoard() {
     setSelectedQuestion(question)
     
     // Setup for specific modes
-    if (gameRound?.gameMode === "speed") {
+    if (gameRound?.gameMode === "speed" || gameRound?.gameMode === "guess") {
       setTimeLeft(10)
       setTimerActive(true)
     }
@@ -687,7 +687,7 @@ export function GameBoard() {
           </DialogHeader>
 
           {/* Speed Mode Timer */}
-          {gameRound?.gameMode === "speed" && (
+          {(gameRound?.gameMode === "speed" || gameRound?.gameMode === "guess") && !showAnswer && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium flex items-center gap-2">
@@ -844,7 +844,7 @@ export function GameBoard() {
               {/* Guess Mode - Show reveal button */}
               {gameRound?.gameMode === "guess" && !showAnswer && (
                 <Button
-                  onClick={() => setShowAnswer(true)}
+                  onClick={() => { setShowAnswer(true); setTimerActive(false); }}
                   className="flex-1 bg-gradient-fun hover:opacity-90"
                   size="lg"
                 >
