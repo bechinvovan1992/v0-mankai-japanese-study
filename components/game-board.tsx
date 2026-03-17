@@ -106,8 +106,6 @@ export function GameBoard() {
   const [trueFalseIsCorrect, setTrueFalseIsCorrect] = useState(false)
   const [canSteal, setCanSteal] = useState(false)
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null)
-  const [expandedCell, setExpandedCell] = useState<string | null>(null)
-  const [expandedCellIndex, setExpandedCellIndex] = useState<number | null>(null) // Track index for display
   const [isMusicPlaying, setIsMusicPlaying] = useState(false)
   const [lastClickedMapping, setLastClickedMapping] = useState<{ mapping: string; questionId: string } | null>(null) // Track last clicked cell for mapping bonus
   const [usedMappings, setUsedMappings] = useState<Set<string>>(new Set()) // Track mappings that have been claimed
@@ -210,9 +208,6 @@ export function GameBoard() {
       if (question.mapping && !usedMappings.has(question.mapping)) {
         setLastClickedMapping({ mapping: question.mapping, questionId: question.id })
       }
-      // Toggle expanded view for played cells
-      setExpandedCell(expandedCell === question.id ? null : question.id)
-      setExpandedCellIndex(expandedCell === question.id ? null : cellIndex + 1)
       return
     }
     playClick()
@@ -624,26 +619,42 @@ export function GameBoard() {
               <button
                 onClick={() => handleCellClick(question, index)}
                 className={cn(
-                  "w-full aspect-square rounded-xl md:rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-1 md:p-2 text-center shadow-sm overflow-hidden",
+                  "w-full min-h-[100px] md:min-h-[120px] rounded-xl md:rounded-2xl border-2 transition-all flex flex-col p-2 text-left shadow-sm overflow-hidden",
                   question.played
                     ? isLastClicked
                       ? "bg-amber-100 dark:bg-amber-900/30 border-amber-500 cursor-pointer ring-2 ring-amber-400"
                       : "bg-success/10 border-success/30 cursor-pointer hover:bg-success/20"
-                    : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg active:scale-95 md:hover:scale-105 cursor-pointer"
+                    : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg active:scale-95 md:hover:scale-105 cursor-pointer items-center justify-center"
                 )}
               >
                 {question.played ? (
-                  <div className="flex flex-col items-center gap-0.5 w-full overflow-hidden">
-                    <span className="text-[9px] md:text-[10px] text-foreground font-medium leading-tight line-clamp-2 w-full px-0.5">
-                      {question.question}
-                    </span>
-                    <span className="text-[10px] md:text-xs text-success font-bold truncate w-full">
-                      {question.correct}
-                    </span>
-                    {question.example && (
-                      <span className="text-[8px] md:text-[9px] text-muted-foreground truncate w-full italic">
-                        {question.example}
+                  <div className="flex flex-col gap-1 w-full overflow-hidden h-full">
+                    {/* Header: Number and Badge */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-xs md:text-sm font-bold text-primary">#{index + 1}</span>
+                      <span className={cn(
+                        "text-[8px] md:text-[10px] px-1 py-0.5 rounded text-white",
+                        question.type === 1 ? "bg-chart-3" : "bg-chart-4"
+                      )}>
+                        {question.type === 1 ? "NP" : "TV"}
                       </span>
+                    </div>
+                    {/* Question */}
+                    <p className="text-[10px] md:text-xs text-foreground font-medium leading-tight line-clamp-2">
+                      {question.question}
+                    </p>
+                    {/* Answer */}
+                    <div className="flex items-center gap-1 bg-success/20 rounded px-1 py-0.5 mt-auto">
+                      <Check className="w-3 h-3 text-success shrink-0" />
+                      <span className="text-[10px] md:text-xs text-success font-bold truncate">
+                        {question.correct}
+                      </span>
+                    </div>
+                    {/* Example */}
+                    {question.example && (
+                      <p className="text-[8px] md:text-[10px] text-muted-foreground truncate italic bg-amber-100/50 dark:bg-amber-900/20 rounded px-1 py-0.5">
+                        VD: {question.example}
+                      </p>
                     )}
                   </div>
                 ) : (
@@ -652,59 +663,6 @@ export function GameBoard() {
                   </span>
                 )}
               </button>
-              
-              {/* Expanded Cell Content */}
-              {expandedCell === question.id && question.played && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-2">
-                  <Card className="border-2 border-success/50 shadow-xl">
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-primary">#{expandedCellIndex}</span>
-                          <Badge className={question.type === 1 ? "bg-chart-3" : "bg-chart-4"}>
-                            {question.type === 1 ? "Ngữ pháp" : "Từ vựng"}
-                          </Badge>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={(e) => { e.stopPropagation(); setExpandedCell(null) }}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <p className="font-medium text-sm">{question.question}</p>
-                      <div className="text-sm space-y-1">
-                        {question.answers.map((ans, i) => (
-                          <div 
-                            key={i} 
-                            className={cn(
-                              "p-2 rounded-lg",
-                              ans === question.correct 
-                                ? "bg-success/20 border border-success/50 font-medium" 
-                                : "bg-secondary/50"
-                            )}
-                          >
-                            <span className="font-bold mr-2">{["A", "B", "C", "D"][i]}.</span>
-                            {ans}
-                            {ans === question.correct && <Check className="w-4 h-4 inline ml-2 text-success" />}
-                          </div>
-                        ))}
-                      </div>
-                      {question.example && (
-                        <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg text-xs">
-                          <span className="font-bold">Ví dụ:</span> <span className="italic">{question.example}</span>
-                        </div>
-                      )}
-                      {question.explain && (
-                        <div className="p-3 bg-primary/10 rounded-lg text-xs">
-                          <span className="font-bold">Giải thích:</span> {question.explain}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
             </div>
               )
             })}
