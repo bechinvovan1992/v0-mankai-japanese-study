@@ -108,7 +108,7 @@ export function GameBoard() {
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null)
   const [expandedCell, setExpandedCell] = useState<string | null>(null)
   const [isMusicPlaying, setIsMusicPlaying] = useState(false)
-  const [revealedMappings, setRevealedMappings] = useState<Set<string>>(new Set()) // Track revealed mappings for bonus points
+  const [lastClickedMapping, setLastClickedMapping] = useState<{ mapping: string; questionId: string } | null>(null) // Track last clicked cell for mapping bonus
 
   // Sound effects
   const { playCorrect, playWrong, playClick, playGameStart, playTick, startBgMusic, stopBgMusic, toggleBgMusic } = useGameSounds()
@@ -188,25 +188,20 @@ export function GameBoard() {
 
   const handleCellClick = (question: Question) => {
     if (question.played) {
-      // Check if this cell has a matching mapping with a revealed mapping (bonus points)
-      if (question.mapping && revealedMappings.has(question.mapping)) {
-        // Award bonus points for clicking matching mapping cell
-        playCorrect()
-        markQuestionPlayed(question.id, true, 2) // Mark as bonus +2
-        if (gameRound?.gameMode === "teambattle" && gameRound.teams) {
-          const currentTeam = gameRound.teams[gameRound.currentTeamIndex || 0]
-          addTeamScore(currentTeam.id, 2)
-        } else {
-          // Bonus goes to current player
+      // Check for consecutive mapping bonus - compare with last clicked played cell
+      if (question.mapping && lastClickedMapping && lastClickedMapping.questionId !== question.id) {
+        if (question.mapping === lastClickedMapping.mapping) {
+          // Same mapping! Award +2 bonus points
+          playCorrect()
+          markQuestionPlayed(question.id, true, 2)
+          toast.success("Mapping bonus! +2 điểm")
+          setLastClickedMapping(null) // Reset after successful match
+          return
         }
-        toast.success("Mapping bonus! +2 điểm")
-        // Remove this mapping from revealed set so it can't be claimed again
-        setRevealedMappings(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(question.mapping)
-          return newSet
-        })
-        return
+      }
+      // Track this click as last clicked for mapping comparison
+      if (question.mapping) {
+        setLastClickedMapping({ mapping: question.mapping, questionId: question.id })
       }
       // Toggle expanded view for played cells
       setExpandedCell(expandedCell === question.id ? null : question.id)
@@ -215,6 +210,7 @@ export function GameBoard() {
     playClick()
     resetQuestionState()
     setSelectedQuestion(question)
+    setLastClickedMapping(null) // Reset mapping tracking when opening new question
     
     // Setup for specific modes
     if (gameRound?.gameMode === "speed" || gameRound?.gameMode === "guess") {
@@ -233,11 +229,6 @@ export function GameBoard() {
     if (!selectedQuestion) return
     playCorrect()
     markQuestionPlayed(selectedQuestion.id, true)
-    
-    // Track mapping for bonus points if the question has a mapping
-    if (selectedQuestion.mapping) {
-      setRevealedMappings(prev => new Set(prev).add(selectedQuestion.mapping))
-    }
     
     if (gameRound?.gameMode === "teambattle" && gameRound.teams) {
       const currentTeam = gameRound.teams[gameRound.currentTeamIndex || 0]
@@ -617,38 +608,34 @@ export function GameBoard() {
           )}
         >
           {allQuestions.map((question, index) => {
-              // Check if this cell has a matching mapping for bonus
-              const hasMappingBonus = question.played && question.mapping && revealedMappings.has(question.mapping)
+              // Check if this is the last clicked cell for mapping (highlight it)
+              const isLastClicked = lastClickedMapping?.questionId === question.id
               
               return (
               <div key={question.id} className="relative">
               <button
                 onClick={() => handleCellClick(question)}
                 className={cn(
-                  "w-full aspect-square rounded-xl md:rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-1 md:p-2 text-center shadow-sm",
+                  "w-full aspect-square rounded-xl md:rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-1 md:p-2 text-center shadow-sm overflow-hidden",
                   question.played
-                    ? hasMappingBonus
-                      ? "bg-amber-100 dark:bg-amber-900/30 border-amber-500 cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 animate-pulse"
+                    ? isLastClicked
+                      ? "bg-amber-100 dark:bg-amber-900/30 border-amber-500 cursor-pointer ring-2 ring-amber-400"
                       : "bg-success/10 border-success/30 cursor-pointer hover:bg-success/20"
                     : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg active:scale-95 md:hover:scale-105 cursor-pointer"
                 )}
               >
                 {question.played ? (
-                  <div className="flex flex-col items-center gap-0.5 md:gap-1 w-full">
-                    {hasMappingBonus ? (
-                      <>
-                        <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />
-                        <span className="text-[10px] md:text-xs text-amber-600 dark:text-amber-400 font-bold">
-                          +2 Bonus!
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-5 h-5 md:w-6 md:h-6 text-success" />
-                        <span className="text-[10px] md:text-xs text-muted-foreground truncate w-full px-1">
-                          {question.question.slice(0, 12)}...
-                        </span>
-                      </>
+                  <div className="flex flex-col items-center gap-0.5 w-full overflow-hidden">
+                    <span className="text-[9px] md:text-[10px] text-foreground font-medium leading-tight line-clamp-2 w-full px-0.5">
+                      {question.question}
+                    </span>
+                    <span className="text-[10px] md:text-xs text-success font-bold truncate w-full">
+                      {question.correct}
+                    </span>
+                    {question.example && (
+                      <span className="text-[8px] md:text-[9px] text-muted-foreground truncate w-full italic">
+                        {question.example}
+                      </span>
                     )}
                   </div>
                 ) : (
@@ -693,6 +680,11 @@ export function GameBoard() {
                           </div>
                         ))}
                       </div>
+                      {question.example && (
+                        <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg text-xs">
+                          <span className="font-bold">Ví dụ:</span> <span className="italic">{question.example}</span>
+                        </div>
+                      )}
                       {question.explain && (
                         <div className="p-3 bg-primary/10 rounded-lg text-xs">
                           <span className="font-bold">Giải thích:</span> {question.explain}
