@@ -37,7 +37,7 @@ interface AppState {
   setGameMode: (mode: GameMode) => void
   startGame: () => void
   endGame: () => void
-  markQuestionPlayed: (questionId: string, correct: boolean) => void
+  markQuestionPlayed: (questionId: string, correct: boolean, bonusPoints?: number) => void
   nextPlayer: () => void
   eliminatePlayer: (playerId: string) => void
   setupTeams: (numTeams: number) => void
@@ -281,21 +281,22 @@ export const useAppStore = create<AppState>()(
         })
       },
       endGame: () => set({ gameRound: null }),
-      markQuestionPlayed: (questionId, correct) =>
+      markQuestionPlayed: (questionId, correct, bonusPoints = 0) =>
         set((state) => {
           if (!state.gameRound) return state
           const currentPlayer = state.gameRound.players[state.gameRound.currentPlayerIndex]
+          const pointsToAdd = bonusPoints > 0 ? bonusPoints : (correct ? 1 : 0)
           return {
             gameRound: {
               ...state.gameRound,
-              remainingQuestions: state.gameRound.remainingQuestions - 1,
+              remainingQuestions: bonusPoints > 0 ? state.gameRound.remainingQuestions : state.gameRound.remainingQuestions - 1,
               players: state.gameRound.players.map((p) =>
                 p.id === currentPlayer.id
                   ? {
                       ...p,
-                      score: correct ? p.score + 1 : p.score,
-                      correctCount: correct ? p.correctCount + 1 : p.correctCount,
-                      wrongCount: correct ? p.wrongCount : p.wrongCount + 1,
+                      score: p.score + pointsToAdd,
+                      correctCount: correct || bonusPoints > 0 ? p.correctCount + 1 : p.correctCount,
+                      wrongCount: correct || bonusPoints > 0 ? p.wrongCount : p.wrongCount + 1,
                       assignedQuestions: p.assignedQuestions.map((q) =>
                         q.id === questionId ? { ...q, played: true } : q
                       ),

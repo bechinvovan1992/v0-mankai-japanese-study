@@ -108,6 +108,7 @@ export function GameBoard() {
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null)
   const [expandedCell, setExpandedCell] = useState<string | null>(null)
   const [isMusicPlaying, setIsMusicPlaying] = useState(false)
+  const [revealedMappings, setRevealedMappings] = useState<Set<string>>(new Set()) // Track revealed mappings for bonus points
 
   // Sound effects
   const { playCorrect, playWrong, playClick, playGameStart, playTick, startBgMusic, stopBgMusic, toggleBgMusic } = useGameSounds()
@@ -187,6 +188,26 @@ export function GameBoard() {
 
   const handleCellClick = (question: Question) => {
     if (question.played) {
+      // Check if this cell has a matching mapping with a revealed mapping (bonus points)
+      if (question.mapping && revealedMappings.has(question.mapping)) {
+        // Award bonus points for clicking matching mapping cell
+        playCorrect()
+        markQuestionPlayed(question.id, true, 2) // Mark as bonus +2
+        if (gameRound?.gameMode === "teambattle" && gameRound.teams) {
+          const currentTeam = gameRound.teams[gameRound.currentTeamIndex || 0]
+          addTeamScore(currentTeam.id, 2)
+        } else {
+          // Bonus goes to current player
+        }
+        toast.success("Mapping bonus! +2 điểm")
+        // Remove this mapping from revealed set so it can't be claimed again
+        setRevealedMappings(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(question.mapping)
+          return newSet
+        })
+        return
+      }
       // Toggle expanded view for played cells
       setExpandedCell(expandedCell === question.id ? null : question.id)
       return
@@ -212,6 +233,11 @@ export function GameBoard() {
     if (!selectedQuestion) return
     playCorrect()
     markQuestionPlayed(selectedQuestion.id, true)
+    
+    // Track mapping for bonus points if the question has a mapping
+    if (selectedQuestion.mapping) {
+      setRevealedMappings(prev => new Set(prev).add(selectedQuestion.mapping))
+    }
     
     if (gameRound?.gameMode === "teambattle" && gameRound.teams) {
       const currentTeam = gameRound.teams[gameRound.currentTeamIndex || 0]
@@ -590,23 +616,40 @@ export function GameBoard() {
             boardColumns >= 8 && "2xl:grid-cols-8"
           )}
         >
-          {allQuestions.map((question, index) => (
-            <div key={question.id} className="relative">
+          {allQuestions.map((question, index) => {
+              // Check if this cell has a matching mapping for bonus
+              const hasMappingBonus = question.played && question.mapping && revealedMappings.has(question.mapping)
+              
+              return (
+              <div key={question.id} className="relative">
               <button
                 onClick={() => handleCellClick(question)}
                 className={cn(
                   "w-full aspect-square rounded-xl md:rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-1 md:p-2 text-center shadow-sm",
                   question.played
-                    ? "bg-success/10 border-success/30 cursor-pointer hover:bg-success/20"
+                    ? hasMappingBonus
+                      ? "bg-amber-100 dark:bg-amber-900/30 border-amber-500 cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 animate-pulse"
+                      : "bg-success/10 border-success/30 cursor-pointer hover:bg-success/20"
                     : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg active:scale-95 md:hover:scale-105 cursor-pointer"
                 )}
               >
                 {question.played ? (
                   <div className="flex flex-col items-center gap-0.5 md:gap-1 w-full">
-                    <Check className="w-5 h-5 md:w-6 md:h-6 text-success" />
-                    <span className="text-[10px] md:text-xs text-muted-foreground truncate w-full px-1">
-                      {question.question.slice(0, 12)}...
-                    </span>
+                    {hasMappingBonus ? (
+                      <>
+                        <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />
+                        <span className="text-[10px] md:text-xs text-amber-600 dark:text-amber-400 font-bold">
+                          +2 Bonus!
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-5 h-5 md:w-6 md:h-6 text-success" />
+                        <span className="text-[10px] md:text-xs text-muted-foreground truncate w-full px-1">
+                          {question.question.slice(0, 12)}...
+                        </span>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <span className="text-xl md:text-2xl font-bold bg-gradient-to-br from-primary to-chart-5 bg-clip-text text-transparent">
@@ -660,7 +703,8 @@ export function GameBoard() {
                 </div>
               )}
             </div>
-          ))}
+              )
+            })}
         </div>
       )}
 
@@ -754,9 +798,24 @@ export function GameBoard() {
 
           {/* Guess Mode - Only show correct answer after reveal */}
           {gameRound?.gameMode === "guess" && showAnswer && (
-            <div className="p-6 bg-success/10 rounded-xl border-2 border-success/30 text-center">
-              <p className="text-sm text-muted-foreground mb-2">Dap an dung:</p>
-              <p className="text-2xl font-bold text-success">{selectedQuestion?.correct}</p>
+            <div className="p-6 bg-success/10 rounded-xl border-2 border-success/30 text-center space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Đáp án đúng:</p>
+                <p className="text-2xl font-bold text-success">{selectedQuestion?.correct}</p>
+              </div>
+              {selectedQuestion?.example && (
+                <div className="pt-3 border-t border-success/20">
+                  <p className="text-sm text-muted-foreground mb-1">Ví dụ:</p>
+                  <p className="text-base text-foreground italic">{selectedQuestion.example}</p>
+                </div>
+              )}
+              {selectedQuestion?.mapping && (
+                <div className="pt-3 border-t border-success/20">
+                  <p className="text-xs text-primary">
+                    Tìm các ô có cùng mapping để nhận +2 điểm bonus!
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

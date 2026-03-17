@@ -7,6 +7,8 @@ export interface Question {
   answers: string[]
   correct: string
   explain: string
+  example: string // Example sentence
+  mapping: string // Questions with same mapping are related
   played: boolean
   markedWrong?: boolean // For wrong review mode
 }
