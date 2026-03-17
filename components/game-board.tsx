@@ -107,8 +107,10 @@ export function GameBoard() {
   const [canSteal, setCanSteal] = useState(false)
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null)
   const [expandedCell, setExpandedCell] = useState<string | null>(null)
+  const [expandedCellIndex, setExpandedCellIndex] = useState<number | null>(null) // Track index for display
   const [isMusicPlaying, setIsMusicPlaying] = useState(false)
   const [lastClickedMapping, setLastClickedMapping] = useState<{ mapping: string; questionId: string } | null>(null) // Track last clicked cell for mapping bonus
+  const [usedMappings, setUsedMappings] = useState<Set<string>>(new Set()) // Track mappings that have been claimed
 
   // Sound effects
   const { playCorrect, playWrong, playClick, playGameStart, playTick, startBgMusic, stopBgMusic, toggleBgMusic } = useGameSounds()
@@ -164,6 +166,8 @@ export function GameBoard() {
     resetAllSelectedPlayed()
     stopBgMusic()
     setIsMusicPlaying(false)
+    setUsedMappings(new Set()) // Reset used mappings for new game
+    setLastClickedMapping(null)
     endGame()
     toast.success("Đã reset tất cả câu hỏi. Bắt đầu chơi lại!")
   }
@@ -186,25 +190,29 @@ export function GameBoard() {
     setSelectedAnswerIndex(null)
   }, [])
 
-  const handleCellClick = (question: Question) => {
+  const handleCellClick = (question: Question, cellIndex: number) => {
     if (question.played) {
       // Check for consecutive mapping bonus - compare with last clicked played cell
-      if (question.mapping && lastClickedMapping && lastClickedMapping.questionId !== question.id) {
+      // Only allow if this mapping hasn't been used yet
+      if (question.mapping && !usedMappings.has(question.mapping) && lastClickedMapping && lastClickedMapping.questionId !== question.id) {
         if (question.mapping === lastClickedMapping.mapping) {
           // Same mapping! Award +2 bonus points
           playCorrect()
           markQuestionPlayed(question.id, true, 2)
           toast.success("Mapping bonus! +2 điểm")
+          // Mark this mapping as used so it cannot be claimed again
+          setUsedMappings(prev => new Set(prev).add(question.mapping))
           setLastClickedMapping(null) // Reset after successful match
           return
         }
       }
-      // Track this click as last clicked for mapping comparison
-      if (question.mapping) {
+      // Track this click as last clicked for mapping comparison (only if mapping not used)
+      if (question.mapping && !usedMappings.has(question.mapping)) {
         setLastClickedMapping({ mapping: question.mapping, questionId: question.id })
       }
       // Toggle expanded view for played cells
       setExpandedCell(expandedCell === question.id ? null : question.id)
+      setExpandedCellIndex(expandedCell === question.id ? null : cellIndex + 1)
       return
     }
     playClick()
@@ -614,7 +622,7 @@ export function GameBoard() {
               return (
               <div key={question.id} className="relative">
               <button
-                onClick={() => handleCellClick(question)}
+                onClick={() => handleCellClick(question, index)}
                 className={cn(
                   "w-full aspect-square rounded-xl md:rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-1 md:p-2 text-center shadow-sm overflow-hidden",
                   question.played
@@ -651,9 +659,12 @@ export function GameBoard() {
                   <Card className="border-2 border-success/50 shadow-xl">
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <Badge className={question.type === 1 ? "bg-chart-3" : "bg-chart-4"}>
-                          {question.type === 1 ? "Ngữ pháp" : "Từ vựng"}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-primary">#{expandedCellIndex}</span>
+                          <Badge className={question.type === 1 ? "bg-chart-3" : "bg-chart-4"}>
+                            {question.type === 1 ? "Ngữ pháp" : "Từ vựng"}
+                          </Badge>
+                        </div>
                         <Button 
                           variant="ghost" 
                           size="sm" 
