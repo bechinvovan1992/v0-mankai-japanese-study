@@ -106,8 +106,9 @@ export function GameBoard() {
   const [trueFalseIsCorrect, setTrueFalseIsCorrect] = useState(false)
   const [canSteal, setCanSteal] = useState(false)
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null)
-  const [expandedCell, setExpandedCell] = useState<string | null>(null)
   const [isMusicPlaying, setIsMusicPlaying] = useState(false)
+  const [lastClickedMapping, setLastClickedMapping] = useState<{ mapping: string; questionId: string } | null>(null) // Track last clicked cell for mapping bonus
+  const [usedMappings, setUsedMappings] = useState<Set<string>>(new Set()) // Track mappings that have been claimed
 
   // Sound effects
   const { playCorrect, playWrong, playClick, playGameStart, playTick, startBgMusic, stopBgMusic, toggleBgMusic } = useGameSounds()
@@ -163,6 +164,8 @@ export function GameBoard() {
     resetAllSelectedPlayed()
     stopBgMusic()
     setIsMusicPlaying(false)
+    setUsedMappings(new Set()) // Reset used mappings for new game
+    setLastClickedMapping(null)
     endGame()
     toast.success("Đã reset tất cả câu hỏi. Bắt đầu chơi lại!")
   }
@@ -185,15 +188,32 @@ export function GameBoard() {
     setSelectedAnswerIndex(null)
   }, [])
 
-  const handleCellClick = (question: Question) => {
+  const handleCellClick = (question: Question, cellIndex: number) => {
     if (question.played) {
-      // Toggle expanded view for played cells
-      setExpandedCell(expandedCell === question.id ? null : question.id)
+      // Check for consecutive mapping bonus - compare with last clicked played cell
+      // Only allow if this mapping hasn't been used yet
+      if (question.mapping && !usedMappings.has(question.mapping) && lastClickedMapping && lastClickedMapping.questionId !== question.id) {
+        if (question.mapping === lastClickedMapping.mapping) {
+          // Same mapping! Award +2 bonus points
+          playCorrect()
+          markQuestionPlayed(question.id, true, 2)
+          toast.success("Mapping bonus! +2 điểm")
+          // Mark this mapping as used so it cannot be claimed again
+          setUsedMappings(prev => new Set(prev).add(question.mapping))
+          setLastClickedMapping(null) // Reset after successful match
+          return
+        }
+      }
+      // Track this click as last clicked for mapping comparison (only if mapping not used)
+      if (question.mapping && !usedMappings.has(question.mapping)) {
+        setLastClickedMapping({ mapping: question.mapping, questionId: question.id })
+      }
       return
     }
     playClick()
     resetQuestionState()
     setSelectedQuestion(question)
+    setLastClickedMapping(null) // Reset mapping tracking when opening new question
     
     // Setup for specific modes
     if (gameRound?.gameMode === "speed" || gameRound?.gameMode === "guess") {
@@ -590,23 +610,52 @@ export function GameBoard() {
             boardColumns >= 8 && "2xl:grid-cols-8"
           )}
         >
-          {allQuestions.map((question, index) => (
-            <div key={question.id} className="relative">
+          {allQuestions.map((question, index) => {
+              // Check if this is the last clicked cell for mapping (highlight it)
+              const isLastClicked = lastClickedMapping?.questionId === question.id
+              
+              return (
+              <div key={question.id} className="relative">
               <button
-                onClick={() => handleCellClick(question)}
+                onClick={() => handleCellClick(question, index)}
                 className={cn(
-                  "w-full aspect-square rounded-xl md:rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-1 md:p-2 text-center shadow-sm",
+                  "w-full min-h-[100px] md:min-h-[120px] rounded-xl md:rounded-2xl border-2 transition-all flex flex-col p-2 text-left shadow-sm overflow-hidden",
                   question.played
-                    ? "bg-success/10 border-success/30 cursor-pointer hover:bg-success/20"
-                    : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg active:scale-95 md:hover:scale-105 cursor-pointer"
+                    ? isLastClicked
+                      ? "bg-amber-100 dark:bg-amber-900/30 border-amber-500 cursor-pointer ring-2 ring-amber-400"
+                      : "bg-success/10 border-success/30 cursor-pointer hover:bg-success/20"
+                    : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg active:scale-95 md:hover:scale-105 cursor-pointer items-center justify-center"
                 )}
               >
                 {question.played ? (
-                  <div className="flex flex-col items-center gap-0.5 md:gap-1 w-full">
-                    <Check className="w-5 h-5 md:w-6 md:h-6 text-success" />
-                    <span className="text-[10px] md:text-xs text-muted-foreground truncate w-full px-1">
-                      {question.question.slice(0, 12)}...
-                    </span>
+                  <div className="flex flex-col gap-1 w-full overflow-hidden h-full">
+                    {/* Header: Number and Badge */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-xs md:text-sm font-bold text-primary">#{index + 1}</span>
+                      <span className={cn(
+                        "text-[8px] md:text-[10px] px-1 py-0.5 rounded text-white",
+                        question.type === 1 ? "bg-chart-3" : "bg-chart-4"
+                      )}>
+                        {question.type === 1 ? "NP" : "TV"}
+                      </span>
+                    </div>
+                    {/* Question */}
+                    <p className="text-[10px] md:text-xs text-foreground font-medium leading-tight line-clamp-2">
+                      {question.question}
+                    </p>
+                    {/* Answer */}
+                    <div className="flex items-center gap-1 bg-success/20 rounded px-1 py-0.5 mt-auto">
+                      <Check className="w-3 h-3 text-success shrink-0" />
+                      <span className="text-[10px] md:text-xs text-success font-bold truncate">
+                        {question.correct}
+                      </span>
+                    </div>
+                    {/* Example */}
+                    {question.example && (
+                      <p className="text-[8px] md:text-[10px] text-muted-foreground truncate italic bg-amber-100/50 dark:bg-amber-900/20 rounded px-1 py-0.5">
+                        VD: {question.example}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <span className="text-xl md:text-2xl font-bold bg-gradient-to-br from-primary to-chart-5 bg-clip-text text-transparent">
@@ -614,53 +663,9 @@ export function GameBoard() {
                   </span>
                 )}
               </button>
-              
-              {/* Expanded Cell Content */}
-              {expandedCell === question.id && question.played && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-2">
-                  <Card className="border-2 border-success/50 shadow-xl">
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Badge className={question.type === 1 ? "bg-chart-3" : "bg-chart-4"}>
-                          {question.type === 1 ? "Ngữ pháp" : "Từ vựng"}
-                        </Badge>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={(e) => { e.stopPropagation(); setExpandedCell(null) }}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <p className="font-medium text-sm">{question.question}</p>
-                      <div className="text-sm space-y-1">
-                        {question.answers.map((ans, i) => (
-                          <div 
-                            key={i} 
-                            className={cn(
-                              "p-2 rounded-lg",
-                              ans === question.correct 
-                                ? "bg-success/20 border border-success/50 font-medium" 
-                                : "bg-secondary/50"
-                            )}
-                          >
-                            <span className="font-bold mr-2">{["A", "B", "C", "D"][i]}.</span>
-                            {ans}
-                            {ans === question.correct && <Check className="w-4 h-4 inline ml-2 text-success" />}
-                          </div>
-                        ))}
-                      </div>
-                      {question.explain && (
-                        <div className="p-3 bg-primary/10 rounded-lg text-xs">
-                          <span className="font-bold">Giải thích:</span> {question.explain}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
             </div>
-          ))}
+              )
+            })}
         </div>
       )}
 
@@ -754,9 +759,24 @@ export function GameBoard() {
 
           {/* Guess Mode - Only show correct answer after reveal */}
           {gameRound?.gameMode === "guess" && showAnswer && (
-            <div className="p-6 bg-success/10 rounded-xl border-2 border-success/30 text-center">
-              <p className="text-sm text-muted-foreground mb-2">Dap an dung:</p>
-              <p className="text-2xl font-bold text-success">{selectedQuestion?.correct}</p>
+            <div className="p-6 bg-success/10 rounded-xl border-2 border-success/30 text-center space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Đáp án đúng:</p>
+                <p className="text-2xl font-bold text-success">{selectedQuestion?.correct}</p>
+              </div>
+              {selectedQuestion?.example && (
+                <div className="pt-3 border-t border-success/20">
+                  <p className="text-sm text-muted-foreground mb-1">Ví dụ:</p>
+                  <p className="text-base text-foreground italic">{selectedQuestion.example}</p>
+                </div>
+              )}
+              {selectedQuestion?.mapping && (
+                <div className="pt-3 border-t border-success/20">
+                  <p className="text-xs text-primary">
+                    Tìm các ô có cùng mapping để nhận +2 điểm bonus!
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

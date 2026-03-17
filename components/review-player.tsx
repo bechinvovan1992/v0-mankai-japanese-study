@@ -765,20 +765,26 @@ export function ReviewPlayer() {
                           </Badge>
                         </div>
                       </CardHeader>
-                      <CardContent className="flex-1 p-6 space-y-4 overflow-auto">
-                        <p className="text-lg text-center text-muted-foreground bg-secondary/50 p-3 rounded-lg">
-                          {currentCard.question}
-                        </p>
-                        <div className="p-4 bg-success/10 rounded-xl text-center">
-                          <p className="text-2xl font-bold text-success">{currentCard.correct}</p>
-                        </div>
-                        {currentCard.explain && (
-                          <div className="p-4 bg-secondary/50 rounded-xl">
-                            <p className="text-sm font-medium mb-1">Giải thích:</p>
-                            <p className="text-muted-foreground">{currentCard.explain}</p>
-                          </div>
-                        )}
-                      </CardContent>
+<CardContent className="flex-1 p-6 space-y-4 overflow-auto">
+  <p className="text-lg text-center text-muted-foreground bg-secondary/50 p-3 rounded-lg">
+  {currentCard.question}
+  </p>
+  <div className="p-4 bg-success/10 rounded-xl text-center">
+  <p className="text-2xl font-bold text-success">{currentCard.correct}</p>
+  </div>
+  {currentCard.example && (
+  <div className="p-4 bg-primary/10 rounded-xl">
+  <p className="text-sm font-medium mb-1">Ví dụ:</p>
+  <p className="text-foreground italic">{currentCard.example}</p>
+  </div>
+  )}
+  {currentCard.explain && (
+  <div className="p-4 bg-secondary/50 rounded-xl">
+  <p className="text-sm font-medium mb-1">Giải thích:</p>
+  <p className="text-muted-foreground">{currentCard.explain}</p>
+  </div>
+  )}
+  </CardContent>
                     </Card>
                   </div>
                 </div>
@@ -808,20 +814,26 @@ export function ReviewPlayer() {
                       <Eye className="w-4 h-4 mr-2" />
                       Xem đáp án
                     </Button>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-success/10 rounded-xl text-center border-2 border-success/30">
-                        <p className="text-sm text-muted-foreground mb-1">Đáp án đúng:</p>
-                        <p className="text-2xl font-bold text-success">{currentCard.correct}</p>
-                      </div>
-                      {currentCard.explain && (
-                        <div className="p-4 bg-secondary/50 rounded-xl">
-                          <p className="text-sm font-medium mb-1">Giải thích:</p>
-                          <p className="text-muted-foreground">{currentCard.explain}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+) : (
+  <div className="space-y-4">
+  <div className="p-4 bg-success/10 rounded-xl text-center border-2 border-success/30">
+  <p className="text-sm text-muted-foreground mb-1">Đáp án đúng:</p>
+  <p className="text-2xl font-bold text-success">{currentCard.correct}</p>
+  </div>
+  {currentCard.example && (
+  <div className="p-4 bg-primary/10 rounded-xl">
+  <p className="text-sm font-medium mb-1">Ví dụ:</p>
+  <p className="text-foreground italic">{currentCard.example}</p>
+  </div>
+  )}
+  {currentCard.explain && (
+  <div className="p-4 bg-secondary/50 rounded-xl">
+  <p className="text-sm font-medium mb-1">Giải thích:</p>
+  <p className="text-muted-foreground">{currentCard.explain}</p>
+  </div>
+  )}
+  </div>
+  )}
                 </CardContent>
               </Card>
             )}

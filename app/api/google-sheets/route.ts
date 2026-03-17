@@ -150,7 +150,11 @@ export async function GET(request: Request) {
       const header = rows[0].map((h: string) => h?.toString().toLowerCase().trim())
       const dataRows = rows.slice(1)
 
-      // Detect format: full (8 cols) or simple (3 cols)
+      // Detect format: 
+      // - New simple format (5 cols): type, question, answer, example, mapping
+      // - Full format (8+ cols): type, question, answer1-4, correct, explain
+      // - Old simple format (3 cols): type, question, answer
+      const hasMapping = header.includes("mapping") || header.includes("example")
       const isFullFormat = header.includes("answer1") || header.includes("correct") || header.length >= 7
 
       let grammarCount = 0
@@ -165,7 +169,7 @@ export async function GET(request: Request) {
         if (type === 1) grammarCount++
         else vocabCount++
 
-        if (isFullFormat && row.length >= 7) {
+        if (isFullFormat && row.length >= 7 && !hasMapping) {
           // Full format: type, question, answer1, answer2, answer3, answer4, correct, explain
           const question = row[1]?.trim() || ""
           const answers = [
@@ -184,12 +188,17 @@ export async function GET(request: Request) {
             answers: answers.length > 0 ? answers : [correct],
             correct,
             explain,
+            example: "",
+            mapping: "",
             played: false,
           }
         } else {
-          // Simple format: type, question, answer
+          // New simple format: type, question, answer, example, mapping
+          // Or old simple format: type, question, answer
           const question = row[1]?.trim() || ""
           const answer = row[2]?.trim() || ""
+          const example = row[3]?.trim() || ""
+          const mapping = row[4]?.trim() || ""
 
           return {
             id: `${sheetName}-${index}-${generateId()}`,
@@ -198,6 +207,8 @@ export async function GET(request: Request) {
             answers: [answer],
             correct: answer,
             explain: "",
+            example,
+            mapping,
             played: false,
           }
         }
