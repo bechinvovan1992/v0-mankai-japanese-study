@@ -136,11 +136,15 @@ export function GameBoard() {
   useEffect(() => {
     if (timeLeft === 0 && timerActive) {
       setTimerActive(false)
-      setShowAnswer(true)
-      playWrong()
+      // For "speed" mode: auto-reveal answer when time runs out
+      // For "guess" mode: do NOT auto-reveal, user must click "Hiện Đáp Án"
+      if (gameRound?.gameMode === "speed") {
+        setShowAnswer(true)
+        playWrong()
+      }
       toast.error("Hết giờ!")
     }
-  }, [timeLeft, timerActive, playWrong])
+  }, [timeLeft, timerActive, playWrong, gameRound?.gameMode])
 
   // Hidden answers reveal effect
   useEffect(() => {
