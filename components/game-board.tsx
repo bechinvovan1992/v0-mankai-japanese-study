@@ -115,24 +115,37 @@ export function GameBoard() {
 
   const canStartGame = selectedDatasetIds.length > 0 && players.length > 0
 
-  // Timer effect for speed mode
+  // Timer countdown effect for speed and guess mode
   useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (timerActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1)
-        if (timeLeft <= 5) {
+    if (!timerActive || timeLeft <= 0) return
+    
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        const newTime = prev - 1
+        if (newTime <= 5 && newTime > 0) {
           playTick()
         }
-      }, 1000)
-    } else if (timeLeft === 0 && timerActive) {
+        return newTime
+      })
+    }, 1000)
+    
+    return () => clearInterval(interval)
+  }, [timerActive, timeLeft, playTick])
+
+  // Separate effect to handle timer reaching 0
+  const currentGameMode = gameRound?.gameMode
+  useEffect(() => {
+    if (timeLeft === 0 && timerActive) {
       setTimerActive(false)
-      setShowAnswer(true)
-      playWrong()
+      // For "speed" mode: auto-reveal answer when time runs out
+      // For "guess" mode: do NOT auto-reveal, user must click "Hiện Đáp Án"
+      if (currentGameMode === "speed") {
+        setShowAnswer(true)
+        playWrong()
+      }
       toast.error("Hết giờ!")
     }
-    return () => clearInterval(interval)
-  }, [timerActive, timeLeft, playTick, playWrong])
+  }, [timeLeft, timerActive, playWrong, currentGameMode])
 
   // Hidden answers reveal effect
   useEffect(() => {
@@ -216,8 +229,11 @@ export function GameBoard() {
     setLastClickedMapping(null) // Reset mapping tracking when opening new question
     
     // Setup for specific modes
-    if (gameRound?.gameMode === "speed" || gameRound?.gameMode === "guess") {
+    if (gameRound?.gameMode === "speed") {
       setTimeLeft(10)
+      setTimerActive(true)
+    } else if (gameRound?.gameMode === "guess") {
+      setTimeLeft(gameRound.guessTimerSeconds || 10) // Use locked value from game round
       setTimerActive(true)
     }
     if (gameRound?.gameMode === "truefalse") {
@@ -706,7 +722,10 @@ export function GameBoard() {
                   {timeLeft}s
                 </span>
               </div>
-              <Progress value={(timeLeft / 10) * 100} className="h-3" />
+              <Progress 
+                value={(timeLeft / (gameRound?.gameMode === "guess" ? (gameRound.guessTimerSeconds || 10) : 10)) * 100} 
+                className="h-3" 
+              />
             </div>
           )}
 
