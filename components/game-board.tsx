@@ -117,15 +117,7 @@ export function GameBoard() {
 
   // Timer effect for speed and guess mode
   useEffect(() => {
-    if (!timerActive) return
-    
-    if (timeLeft === 0) {
-      setTimerActive(false)
-      setShowAnswer(true)
-      playWrong()
-      toast.error("Hết giờ!")
-      return
-    }
+    if (!timerActive || timeLeft <= 0) return
     
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
@@ -133,12 +125,19 @@ export function GameBoard() {
         if (newTime <= 5 && newTime > 0) {
           playTick()
         }
+        if (newTime === 0) {
+          // Timer reached 0 - show answer
+          setTimerActive(false)
+          setShowAnswer(true)
+          playWrong()
+          toast.error("Hết giờ!")
+        }
         return newTime
       })
     }, 1000)
     
     return () => clearInterval(interval)
-  }, [timerActive, timeLeft, playTick, playWrong])
+  }, [timerActive, playTick, playWrong])
 
   // Hidden answers reveal effect
   useEffect(() => {
