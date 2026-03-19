@@ -133,18 +133,19 @@ export function GameBoard() {
   }, [timerActive, timeLeft, playTick])
 
   // Separate effect to handle timer reaching 0
+  const currentGameMode = gameRound?.gameMode
   useEffect(() => {
     if (timeLeft === 0 && timerActive) {
       setTimerActive(false)
       // For "speed" mode: auto-reveal answer when time runs out
       // For "guess" mode: do NOT auto-reveal, user must click "Hiện Đáp Án"
-      if (gameRound?.gameMode === "speed") {
+      if (currentGameMode === "speed") {
         setShowAnswer(true)
         playWrong()
       }
       toast.error("Hết giờ!")
     }
-  }, [timeLeft, timerActive, playWrong, gameRound?.gameMode])
+  }, [timeLeft, timerActive, playWrong, currentGameMode])
 
   // Hidden answers reveal effect
   useEffect(() => {
@@ -232,7 +233,7 @@ export function GameBoard() {
       setTimeLeft(10)
       setTimerActive(true)
     } else if (gameRound?.gameMode === "guess") {
-      setTimeLeft(settings.guessTimerSeconds || 10)
+      setTimeLeft(gameRound.guessTimerSeconds || 10) // Use locked value from game round
       setTimerActive(true)
     }
     if (gameRound?.gameMode === "truefalse") {
@@ -722,7 +723,7 @@ export function GameBoard() {
                 </span>
               </div>
               <Progress 
-                value={(timeLeft / (gameRound?.gameMode === "guess" ? (settings.guessTimerSeconds || 10) : 10)) * 100} 
+                value={(timeLeft / (gameRound?.gameMode === "guess" ? (gameRound.guessTimerSeconds || 10) : 10)) * 100} 
                 className="h-3" 
               />
             </div>

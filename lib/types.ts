@@ -57,6 +57,7 @@ export interface GameRound {
   totalQuestions: number
   remainingQuestions: number
   gameMode: GameMode
+  guessTimerSeconds?: number // Locked timer value for guess mode
   teams?: Team[]
   currentTeamIndex?: number
   suddenDeathEliminated?: string[] // Player IDs who are eliminated
