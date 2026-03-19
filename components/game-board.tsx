@@ -133,19 +133,19 @@ export function GameBoard() {
   }, [timerActive, timeLeft, playTick])
 
   // Separate effect to handle timer reaching 0
-  const currentGameMode = gameRound?.gameMode
   useEffect(() => {
     if (timeLeft === 0 && timerActive) {
       setTimerActive(false)
       // For "speed" mode: auto-reveal answer when time runs out
       // For "guess" mode: do NOT auto-reveal, user must click "Hiện Đáp Án"
-      if (currentGameMode === "speed") {
+      if (gameRound?.gameMode === "speed") {
         setShowAnswer(true)
         playWrong()
       }
       toast.error("Hết giờ!")
     }
-  }, [timeLeft, timerActive, playWrong, currentGameMode])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, timerActive, playWrong])
 
   // Hidden answers reveal effect
   useEffect(() => {
@@ -978,7 +978,7 @@ export function GameBoard() {
 
       {/* Scoreboard Dialog */}
       <Dialog open={showScoreboard} onOpenChange={setShowScoreboard}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-warning" />
@@ -988,7 +988,7 @@ export function GameBoard() {
               Xem điểm số của tất cả người chơi
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-3">
+          <div className="py-4 space-y-3 overflow-y-auto max-h-[60vh]">
             {sortedPlayers.map((player, index) => (
               <div
                 key={player.id}
