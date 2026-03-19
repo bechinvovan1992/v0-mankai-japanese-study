@@ -31,80 +31,52 @@ async function loadApiKeys(): Promise<string[]> {
   return FALLBACK_API_KEYS
 }
 
-// Helper to delay for retry
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
-// Make a request with API key fallback and retry for transient errors
+// Make a request with API key fallback
 async function fetchWithApiKeyFallback(
   urlTemplate: (apiKey: string) => string,
-  apiKeys: string[],
-  maxRetries: number = 3
+  apiKeys: string[]
 ): Promise<{ response: Response; usedApiKey: string } | { error: string; allFailed: true }> {
   let lastError = ""
   
   for (const apiKey of apiKeys) {
     const url = urlTemplate(apiKey)
-    
-    // Retry loop for transient errors (500, 503, etc.)
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const response = await fetch(url, { cache: 'no-store' })
-        
-        if (response.ok) {
-          return { response, usedApiKey: apiKey }
-        }
-        
-        const errorText = await response.text()
-        console.error(`Google Sheets API error (attempt ${attempt}/${maxRetries}):`, errorText)
-        lastError = errorText
-        
-        // If it's a 500/503 error (transient), retry with exponential backoff
-        if (response.status >= 500 && response.status < 600) {
-          if (attempt < maxRetries) {
-            const waitTime = Math.pow(2, attempt) * 500 // 1s, 2s, 4s
-            console.log(`Retrying in ${waitTime}ms...`)
-            await delay(waitTime)
-            continue
-          }
-          // All retries exhausted for this key
-          break
-        }
-        
-        // If it's an API key error, try next key
-        if (errorText.includes("API key not valid") || errorText.includes("API_KEY_INVALID")) {
-          console.log(`API key failed: ${apiKey.substring(0, 10)}... trying next`)
-          break // Move to next API key
-        }
-        
-        // If it's a 404 error, the spreadsheet ID is wrong or not shared
-        if (errorText.includes("NOT_FOUND") || errorText.includes("not found") || response.status === 404) {
-          return { 
-            error: `Google Sheet không tìm thấy. Hãy đảm bảo:\n1. Spreadsheet ID đúng: ${SPREADSHEET_ID}\n2. Google Sheet đã được chia sẻ công khai (Anyone with the link can view)`, 
-            allFailed: true 
-          }
-        }
-        
-        // For other errors, break and try next key
-        break
-      } catch (fetchError) {
-        console.error(`Fetch error (attempt ${attempt}/${maxRetries}):`, fetchError)
-        lastError = String(fetchError)
-        if (attempt < maxRetries) {
-          const waitTime = Math.pow(2, attempt) * 500
-          await delay(waitTime)
-          continue
+    try {
+      const response = await fetch(url, { cache: 'no-store' })
+      
+      if (response.ok) {
+        return { response, usedApiKey: apiKey }
+      }
+      
+      const errorText = await response.text()
+      console.error("Google Sheets API error:", errorText)
+      lastError = errorText
+      
+      // If it's an API key error, try next key
+      if (errorText.includes("API key not valid") || errorText.includes("API_KEY_INVALID")) {
+        console.log(`API key failed: ${apiKey.substring(0, 10)}... trying next`)
+        continue
+      }
+      
+      // If it's a 404 error, the spreadsheet ID is wrong or not shared
+      if (errorText.includes("NOT_FOUND") || errorText.includes("not found") || response.status === 404) {
+        return { 
+          error: `Google Sheet không tìm thấy. Hãy đảm bảo:\n1. Spreadsheet ID đúng: ${SPREADSHEET_ID}\n2. Google Sheet đã được chia sẻ công khai (Anyone with the link can view)`, 
+          allFailed: true 
         }
       }
+      
+      // For other errors, try next key
+      continue
+    } catch (fetchError) {
+      console.error("Fetch error:", fetchError)
+      lastError = String(fetchError)
+      continue
     }
   }
   
   // If we get here, all keys failed
   if (lastError.includes("API key not valid") || lastError.includes("API_KEY_INVALID")) {
     return { error: "Tất cả API Key đều không hợp lệ. Vui lòng thêm API Key mới vào file public/data/apikey.json", allFailed: true }
-  }
-  
-  if (lastError.includes("INTERNAL") || lastError.includes("500")) {
-    return { error: "Google Sheets API đang gặp lỗi tạm thời. Vui lòng thử lại sau.", allFailed: true }
   }
   
   return { error: `Không thể kết nối Google Sheets: ${lastError}`, allFailed: true }
