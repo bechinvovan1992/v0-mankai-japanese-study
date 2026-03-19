@@ -74,6 +74,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
     selectedDatasetIds,
     players,
     settings,
+    updateSettings,
     selectDataset,
     deselectDataset,
     selectAllDatasets,
@@ -671,6 +672,39 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                     )
                   })}
                 </div>
+
+                {/* Timer setting for guess mode */}
+                {selectedGameMode === "guess" && (
+                  <div className="mt-4 p-4 bg-secondary/30 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">Thời gian đếm ngược</p>
+                        <p className="text-xs text-muted-foreground">Số giây để trả lời mỗi câu hỏi</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => settings.guessTimerSeconds > 5 && updateSettings({ guessTimerSeconds: settings.guessTimerSeconds - 5 })}
+                          disabled={settings.guessTimerSeconds <= 5}
+                        >
+                          -
+                        </Button>
+                        <span className="w-12 text-center font-bold text-lg">{settings.guessTimerSeconds}s</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => settings.guessTimerSeconds < 60 && updateSettings({ guessTimerSeconds: settings.guessTimerSeconds + 5 })}
+                          disabled={settings.guessTimerSeconds >= 60}
+                        >
+                          +
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -222,8 +222,11 @@ export function GameBoard() {
     setLastClickedMapping(null) // Reset mapping tracking when opening new question
     
     // Setup for specific modes
-    if (gameRound?.gameMode === "speed" || gameRound?.gameMode === "guess") {
+    if (gameRound?.gameMode === "speed") {
       setTimeLeft(10)
+      setTimerActive(true)
+    } else if (gameRound?.gameMode === "guess") {
+      setTimeLeft(settings.guessTimerSeconds || 10)
       setTimerActive(true)
     }
     if (gameRound?.gameMode === "truefalse") {
@@ -712,7 +715,10 @@ export function GameBoard() {
                   {timeLeft}s
                 </span>
               </div>
-              <Progress value={(timeLeft / 10) * 100} className="h-3" />
+              <Progress 
+                value={(timeLeft / (gameRound?.gameMode === "guess" ? (settings.guessTimerSeconds || 10) : 10)) * 100} 
+                className="h-3" 
+              />
             </div>
           )}
 

@@ -75,6 +75,7 @@ const defaultSettings: Settings = {
   autoPlayFrontTime: 3,
   autoPlayBackTime: 3,
   googleSheetUrl: "",
+  guessTimerSeconds: 10,
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15)

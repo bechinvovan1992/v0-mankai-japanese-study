@@ -70,6 +70,7 @@ export interface Settings {
   autoPlayFrontTime: number
   autoPlayBackTime: number
   googleSheetUrl: string
+  guessTimerSeconds: number // Timer for guess mode (default 10)
 }
 
 export interface DataIndex {
