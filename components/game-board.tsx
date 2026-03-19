@@ -133,19 +133,19 @@ export function GameBoard() {
   }, [timerActive, timeLeft, playTick])
 
   // Separate effect to handle timer reaching 0
+  const isSpeedMode = gameRound?.gameMode === "speed"
   useEffect(() => {
     if (timeLeft === 0 && timerActive) {
       setTimerActive(false)
       // For "speed" mode: auto-reveal answer when time runs out
       // For "guess" mode: do NOT auto-reveal, user must click "Hiện Đáp Án"
-      if (gameRound?.gameMode === "speed") {
+      if (isSpeedMode) {
         setShowAnswer(true)
         playWrong()
       }
       toast.error("Hết giờ!")
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, timerActive, playWrong])
+  }, [timeLeft, timerActive, playWrong, isSpeedMode])
 
   // Hidden answers reveal effect
   useEffect(() => {

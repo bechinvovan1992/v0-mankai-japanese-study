@@ -686,8 +686,8 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                           variant="outline"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => settings.guessTimerSeconds > 5 && updateSettings({ guessTimerSeconds: settings.guessTimerSeconds - 5 })}
-                          disabled={settings.guessTimerSeconds <= 5}
+                          onClick={() => settings.guessTimerSeconds > 1 && updateSettings({ guessTimerSeconds: settings.guessTimerSeconds - 1 })}
+                          disabled={settings.guessTimerSeconds <= 1}
                         >
                           -
                         </Button>
@@ -696,7 +696,7 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                           variant="outline"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => settings.guessTimerSeconds < 60 && updateSettings({ guessTimerSeconds: settings.guessTimerSeconds + 5 })}
+                          onClick={() => settings.guessTimerSeconds < 60 && updateSettings({ guessTimerSeconds: settings.guessTimerSeconds + 1 })}
                           disabled={settings.guessTimerSeconds >= 60}
                         >
                           +
