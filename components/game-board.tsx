@@ -115,22 +115,28 @@ export function GameBoard() {
 
   const canStartGame = selectedDatasetIds.length > 0 && players.length > 0
 
-  // Timer effect for speed mode
+  // Timer effect for speed and guess mode
   useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (timerActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1)
-        if (timeLeft <= 5) {
-          playTick()
-        }
-      }, 1000)
-    } else if (timeLeft === 0 && timerActive) {
+    if (!timerActive) return
+    
+    if (timeLeft === 0) {
       setTimerActive(false)
       setShowAnswer(true)
       playWrong()
       toast.error("Hết giờ!")
+      return
     }
+    
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        const newTime = prev - 1
+        if (newTime <= 5 && newTime > 0) {
+          playTick()
+        }
+        return newTime
+      })
+    }, 1000)
+    
     return () => clearInterval(interval)
   }, [timerActive, timeLeft, playTick, playWrong])
 
