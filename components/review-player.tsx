@@ -803,23 +803,8 @@ export function ReviewPlayer() {
             {/* Fullscreen Mode */}
             {isFullscreen && reviewMode === "flip" && (
               <div className="fixed inset-0 z-50 bg-background flex flex-col">
-                {/* Fullscreen Header */}
+                {/* Fullscreen Header with Navigation */}
                 <div className="flex items-center justify-between p-4 border-b shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {currentIndex + 1} / {reviewQuestions.length}
-                    </span>
-                    <Badge
-                      className={cn(
-                        "py-1",
-                        currentCard.type === 1
-                          ? "bg-chart-3 text-chart-3-foreground"
-                          : "bg-chart-4 text-chart-4-foreground"
-                      )}
-                    >
-                      {currentCard.type === 1 ? "Ngữ pháp" : "Từ vựng"}
-                    </Badge>
-                  </div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -828,24 +813,51 @@ export function ReviewPlayer() {
                     <Minimize className="w-4 h-4 mr-1" />
                     Thoát
                   </Button>
+                  
+                  {/* Navigation Controls in Header */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10"
+                      onClick={() => { handlePrev(); setIsFlipped(false); }}
+                      disabled={currentIndex === 0}
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </Button>
+                    <div className="flex items-center gap-2 px-3">
+                      <span className="text-sm font-medium">
+                        {currentIndex + 1} / {reviewQuestions.length}
+                      </span>
+                      <Badge
+                        className={cn(
+                          "py-1",
+                          currentCard.type === 1
+                            ? "bg-chart-3 text-chart-3-foreground"
+                            : "bg-chart-4 text-chart-4-foreground"
+                        )}
+                      >
+                        {currentCard.type === 1 ? "NP" : "TV"}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10"
+                      onClick={() => { handleNext(); setIsFlipped(false); }}
+                      disabled={currentIndex === reviewQuestions.length - 1}
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </Button>
+                  </div>
+                  
+                  <div className="w-[72px]"></div>
                 </div>
 
-                {/* Fullscreen Card with Navigation */}
-                <div className="flex-1 flex items-center justify-center p-4 relative">
-                  {/* Left Navigation Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute left-2 md:left-8 h-12 w-12 rounded-full bg-secondary/80 hover:bg-secondary z-10"
-                    onClick={(e) => { e.stopPropagation(); handlePrev(); setIsFlipped(false); }}
-                    disabled={currentIndex === 0}
-                  >
-                    <ChevronLeft className="w-8 h-8" />
-                  </Button>
-
-                  {/* Flip Card */}
+                {/* Fullscreen Card */}
+                <div className="flex-1 flex items-center justify-center p-4">
                   <div
-                    className="flip-card w-full max-w-3xl h-[70vh] cursor-pointer mx-16"
+                    className="flip-card w-full max-w-3xl h-[75vh] cursor-pointer"
                     onClick={handleFlip}
                   >
                     <div className={cn("flip-card-inner", isFlipped && "flipped")}>
@@ -859,7 +871,7 @@ export function ReviewPlayer() {
                           </CardContent>
                           <div className="p-4 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
                             <RotateCw className="w-4 h-4" />
-                            Nhấn để lật
+                            Nhan de lat
                           </div>
                         </Card>
                       </div>
@@ -876,36 +888,25 @@ export function ReviewPlayer() {
                             </div>
                             {currentCard.example && (
                               <div className="p-4 bg-primary/10 rounded-xl">
-                                <p className="text-sm font-medium mb-1">Ví dụ:</p>
+                                <p className="text-sm font-medium mb-1">Vi du:</p>
                                 <p className="text-base md:text-lg text-foreground italic break-words">{currentCard.example}</p>
                               </div>
                             )}
                             {currentCard.explain && (
                               <div className="p-4 bg-secondary/50 rounded-xl">
-                                <p className="text-sm font-medium mb-1">Giải thích:</p>
+                                <p className="text-sm font-medium mb-1">Giai thich:</p>
                                 <p className="text-base md:text-lg text-muted-foreground break-words">{currentCard.explain}</p>
                               </div>
                             )}
                           </CardContent>
                           <div className="p-4 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
                             <RotateCw className="w-4 h-4" />
-                            Nhấn để lật
+                            Nhan de lat
                           </div>
                         </Card>
                       </div>
                     </div>
                   </div>
-
-                  {/* Right Navigation Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 md:right-8 h-12 w-12 rounded-full bg-secondary/80 hover:bg-secondary z-10"
-                    onClick={(e) => { e.stopPropagation(); handleNext(); setIsFlipped(false); }}
-                    disabled={currentIndex === reviewQuestions.length - 1}
-                  >
-                    <ChevronRight className="w-8 h-8" />
-                  </Button>
                 </div>
               </div>
             )}
