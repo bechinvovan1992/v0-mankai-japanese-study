@@ -22,7 +22,6 @@ import {
   Sparkles,
   Timer,
   RotateCw,
-  Eye,
   Check,
   X,
   AlertCircle,
@@ -41,7 +40,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import type { Dataset, Question } from "@/lib/types"
 
-type ReviewMode = "flip" | "guess" | "quiz"
+type ReviewMode = "flip" | "quiz"
 
 export function ReviewPlayer() {
   const { settings } = useAppStore()
@@ -95,11 +94,11 @@ export function ReviewPlayer() {
     d.questions.some(q => q.answers.length > 1)
   )
 
-  // Simple format modes: flip, guess (type, question, answer)
+  // Simple format modes: flip (type, question, answer)
   // Full format mode: quiz (type, question, answer1-4, correct, explain)
   const isModeCompatible = (mode: ReviewMode) => {
     if (selectedReviewDatasetIds.length === 0) return true
-    if (mode === "flip" || mode === "guess") return hasSimpleFormat
+    if (mode === "flip") return hasSimpleFormat
     if (mode === "quiz") return hasFullFormat
     return true
   }
@@ -418,7 +417,7 @@ export function ReviewPlayer() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <ScrollArea className="h-[400px]">
+          <ScrollArea className="h-[200px] md:h-[350px]">
             {isLoadingSheets ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -512,7 +511,7 @@ export function ReviewPlayer() {
                     resetQuiz() 
                   }
                 }} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger 
                       value="flip" 
                       className={cn(
@@ -523,17 +522,6 @@ export function ReviewPlayer() {
                     >
                       <RotateCw className="w-4 h-4" />
                       Lật thẻ
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="guess" 
-                      className={cn(
-                        "flex items-center gap-2",
-                        !isModeCompatible("guess") && selectedReviewDatasetIds.length > 0 && "opacity-50 cursor-not-allowed"
-                      )}
-                      disabled={!isModeCompatible("guess") && selectedReviewDatasetIds.length > 0}
-                    >
-                      <Eye className="w-4 h-4" />
-                      Đoán đáp án
                     </TabsTrigger>
                     <TabsTrigger 
                       value="quiz" 
@@ -721,121 +709,74 @@ export function ReviewPlayer() {
             {/* Flip Mode Card */}
             {reviewMode === "flip" && (
               <div
-                className="flip-card w-full max-w-2xl aspect-[4/3] cursor-pointer"
+                className="w-full max-w-2xl cursor-pointer"
                 onClick={handleFlip}
               >
-                <div className={cn("flip-card-inner", isFlipped && "flipped")}>
-                  {/* Front */}
-                  <div className="flip-card-front">
-                    <Card className="w-full h-full border-2 border-primary/20 flex flex-col hover:shadow-xl transition-shadow">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <Badge
-                            className={cn(
-                              "py-1",
-                              currentCard.type === 1
-                                ? "bg-chart-3 text-chart-3-foreground"
-                                : "bg-chart-4 text-chart-4-foreground"
-                            )}
-                          >
-                            {currentCard.type === 1 ? "Ngữ pháp" : "Từ vựng"}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground flex items-center gap-1">
-                            <RotateCw className="w-4 h-4" />
-                            Nhấn để lật
-                          </span>
+                {!isFlipped ? (
+                  /* Front */
+                  <Card className="w-full border-2 border-primary/20 hover:shadow-xl transition-shadow">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <Badge
+                          className={cn(
+                            "py-1",
+                            currentCard.type === 1
+                              ? "bg-chart-3 text-chart-3-foreground"
+                              : "bg-chart-4 text-chart-4-foreground"
+                          )}
+                        >
+                          {currentCard.type === 1 ? "Ngữ pháp" : "Từ vựng"}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                          <RotateCw className="w-4 h-4" />
+                          Nhan de lat
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6 md:p-8">
+                      <p className="text-xl md:text-2xl font-medium text-center leading-relaxed break-words">
+                        {currentCard.question}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  /* Back */
+                  <Card className="w-full border-2 border-success/50 bg-success/5 hover:shadow-xl transition-shadow">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <Badge className="bg-success text-success-foreground py-1">
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          Dap an
+                        </Badge>
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                          <RotateCw className="w-4 h-4" />
+                          Nhan de lat
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 md:p-6 space-y-3">
+                      <p className="text-base md:text-lg text-center text-muted-foreground bg-secondary/50 p-2 md:p-3 rounded-lg break-words">
+                        {currentCard.question}
+                      </p>
+                      <div className="p-3 md:p-4 bg-success/10 rounded-xl text-center">
+                        <p className="text-xl md:text-2xl font-bold text-success break-words">{currentCard.correct}</p>
+                      </div>
+                      {currentCard.example && (
+                        <div className="p-3 md:p-4 bg-primary/10 rounded-xl">
+                          <p className="text-xs md:text-sm font-medium mb-1">Vi du:</p>
+                          <p className="text-sm md:text-base text-foreground italic break-words">{currentCard.example}</p>
                         </div>
-                      </CardHeader>
-                      <CardContent className="flex-1 flex items-center justify-center p-8">
-                        <p className="text-2xl md:text-3xl font-medium text-center leading-relaxed">
-                          {currentCard.question}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Back */}
-                  <div className="flip-card-back">
-                    <Card className="w-full h-full border-2 border-success/50 bg-success/5 flex flex-col overflow-auto hover:shadow-xl transition-shadow">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <Badge className="bg-success text-success-foreground py-1">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            Đáp án
-                          </Badge>
+                      )}
+                      {currentCard.explain && (
+                        <div className="p-3 md:p-4 bg-secondary/50 rounded-xl">
+                          <p className="text-xs md:text-sm font-medium mb-1">Giai thich:</p>
+                          <p className="text-sm md:text-base text-muted-foreground break-words">{currentCard.explain}</p>
                         </div>
-                      </CardHeader>
-<CardContent className="flex-1 p-6 space-y-4 overflow-auto">
-  <p className="text-lg text-center text-muted-foreground bg-secondary/50 p-3 rounded-lg">
-  {currentCard.question}
-  </p>
-  <div className="p-4 bg-success/10 rounded-xl text-center">
-  <p className="text-2xl font-bold text-success">{currentCard.correct}</p>
-  </div>
-  {currentCard.example && (
-  <div className="p-4 bg-primary/10 rounded-xl">
-  <p className="text-sm font-medium mb-1">Ví dụ:</p>
-  <p className="text-foreground italic">{currentCard.example}</p>
-  </div>
-  )}
-  {currentCard.explain && (
-  <div className="p-4 bg-secondary/50 rounded-xl">
-  <p className="text-sm font-medium mb-1">Giải thích:</p>
-  <p className="text-muted-foreground">{currentCard.explain}</p>
-  </div>
-  )}
-  </CardContent>
-                    </Card>
-                  </div>
-                </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
-            )}
-
-            {/* Guess Mode */}
-            {reviewMode === "guess" && (
-              <Card className="w-full max-w-2xl border-2 border-primary/20">
-                <CardHeader>
-                  <Badge
-                    className={cn(
-                      "py-1 w-fit",
-                      currentCard.type === 1
-                        ? "bg-chart-3 text-chart-3-foreground"
-                        : "bg-chart-4 text-chart-4-foreground"
-                    )}
-                  >
-                    {currentCard.type === 1 ? "Ngữ pháp" : "Từ vựng"}
-                  </Badge>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <p className="text-2xl font-medium text-center">{currentCard.question}</p>
-
-                  {!showAnswer ? (
-                    <Button onClick={handleRevealAnswer} className="w-full bg-gradient-fun">
-                      <Eye className="w-4 h-4 mr-2" />
-                      Xem đáp án
-                    </Button>
-) : (
-  <div className="space-y-4">
-  <div className="p-4 bg-success/10 rounded-xl text-center border-2 border-success/30">
-  <p className="text-sm text-muted-foreground mb-1">Đáp án đúng:</p>
-  <p className="text-2xl font-bold text-success">{currentCard.correct}</p>
-  </div>
-  {currentCard.example && (
-  <div className="p-4 bg-primary/10 rounded-xl">
-  <p className="text-sm font-medium mb-1">Ví dụ:</p>
-  <p className="text-foreground italic">{currentCard.example}</p>
-  </div>
-  )}
-  {currentCard.explain && (
-  <div className="p-4 bg-secondary/50 rounded-xl">
-  <p className="text-sm font-medium mb-1">Giải thích:</p>
-  <p className="text-muted-foreground">{currentCard.explain}</p>
-  </div>
-  )}
-  </div>
-  )}
-                </CardContent>
-              </Card>
             )}
 
             {/* Quiz Mode */}
