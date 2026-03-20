@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useAppStore } from "@/lib/store"
 import { useGameSounds } from "@/hooks/use-game-sounds"
 import type { Question, GameMode } from "@/lib/types"
@@ -42,6 +42,7 @@ import {
   Trash2,
   Music,
   VolumeX,
+  Volume2,
   Minus,
   Plus,
 } from "lucide-react"
@@ -118,6 +119,50 @@ export function GameBoard() {
 
   const canStartGame = selectedDatasetIds.length > 0 && players.length > 0
 
+  const cancelSpeech = useCallback(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+  }, [])
+
+  const speakText = useCallback(
+    (text: string) => {
+      if (!text) return
+      if (typeof window === "undefined" || !window.speechSynthesis) {
+        toast.error("Trình duyệt không hỗ trợ đọc voice")
+        return
+      }
+
+      cancelSpeech()
+      // Extract only Japanese characters for reading (kanji/hiragana/katakana + common punctuation)
+      const japaneseOnly =
+        text.match(/[\u3000-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF・ー]+/g)?.join(" ") || text
+
+      const utterance = new SpeechSynthesisUtterance(japaneseOnly)
+      utterance.lang = "ja-JP"
+      utterance.rate = 0.9
+      window.speechSynthesis.speak(utterance)
+    },
+    [cancelSpeech]
+  )
+
+  // Auto-speak guard:
+  // - Only speak automatically when reveal is triggered by a direct user action
+  // - Never stack speech across re-renders
+  const revealByUserRef = useRef(false)
+  const lastAutoSpokenKeyRef = useRef<string | null>(null)
+  const lastGridVoiceTapTsRef = useRef(0)
+
+  const handleGridVoiceTap = useCallback(
+    (text: string) => {
+      // iOS/Chrome can sometimes trigger both touch + click; guard to avoid double speak.
+      const now = Date.now()
+      if (now - lastGridVoiceTapTsRef.current < 400) return
+      lastGridVoiceTapTsRef.current = now
+      speakText(text)
+    },
+    [speakText]
+  )
+
   // Timer countdown effect for speed and guess mode
   useEffect(() => {
     if (!timerActive || timeLeft <= 0) return
@@ -143,6 +188,7 @@ export function GameBoard() {
       // For "guess" mode: do NOT auto-reveal, user must click "Hiện Đáp Án"
       const isSpeedMode = gameRound?.gameMode === "speed"
       if (isSpeedMode) {
+        revealByUserRef.current = false
         setShowAnswer(true)
         playWrong()
       }
@@ -162,6 +208,22 @@ export function GameBoard() {
     }
     return () => clearTimeout(timeout)
   }, [selectedQuestion, gameRound?.gameMode, hiddenAnswersRevealed])
+
+  // Auto speak once when answers are revealed by user action
+  useEffect(() => {
+    if (!showAnswer || !selectedQuestion) return
+    if (!revealByUserRef.current) return
+
+    const textToRead = selectedQuestion.correct
+    if (!textToRead) return
+
+    const autoKey = `${selectedQuestion.id}:${textToRead}`
+    if (lastAutoSpokenKeyRef.current === autoKey) return
+    lastAutoSpokenKeyRef.current = autoKey
+
+    speakText(textToRead)
+    revealByUserRef.current = false
+  }, [showAnswer, selectedQuestion, speakText])
 
   const handleStartGame = () => {
     if (!canStartGame) {
@@ -199,6 +261,9 @@ export function GameBoard() {
   }
 
   const resetQuestionState = useCallback(() => {
+    cancelSpeech()
+    revealByUserRef.current = false
+    lastAutoSpokenKeyRef.current = null
     setSelectedQuestion(null)
     setShowAnswer(false)
     setEliminatedAnswers([])
@@ -209,7 +274,7 @@ export function GameBoard() {
     setTrueFalseIsCorrect(false)
     setCanSteal(false)
     setSelectedAnswerIndex(null)
-  }, [])
+  }, [cancelSpeech])
 
   const handleCellClick = (question: Question, cellIndex: number) => {
     if (question.played) {
@@ -371,11 +436,13 @@ export function GameBoard() {
   const handleMultipleChoiceSelect = (index: number) => {
     if (showAnswer) return
     setSelectedAnswerIndex(index)
+    revealByUserRef.current = true
     setShowAnswer(true)
   }
 
   const handleTrueFalseAnswer = (userSaysTrue: boolean) => {
     const isCorrect = userSaysTrue === trueFalseIsCorrect
+    revealByUserRef.current = true
     setShowAnswer(true)
     if (isCorrect) {
       setTimeout(() => handleMarkCorrect(), 1500)
@@ -686,8 +753,16 @@ export function GameBoard() {
               
               return (
               <div key={question.id} className="relative">
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => handleCellClick(question, index)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    handleCellClick(question, index)
+                  }
+                }}
                 className={cn(
                   "w-full min-h-[100px] md:min-h-[120px] rounded-xl md:rounded-2xl border-2 transition-all flex flex-col p-2 text-left shadow-sm overflow-hidden",
                   question.played
@@ -700,13 +775,30 @@ export function GameBoard() {
                 {question.played ? (
                   <div className="flex flex-col gap-1 w-full overflow-hidden h-full">
                     {/* Header: Number and Badge */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-xs md:text-sm font-bold text-primary">#{index + 1}</span>
-                      <span className={cn(
-                        "text-[8px] md:text-[10px] px-1 py-0.5 rounded text-white",
-                        question.type === 1 ? "bg-chart-3" : "bg-chart-4"
-                      )}>
-                        {question.type === 1 ? "NP" : "TV"}
+                    <div className="flex items-start justify-between gap-2 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-xs md:text-sm font-bold text-primary">
+                          #{index + 1}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[8px] md:text-[10px] px-1 py-0.5 rounded text-white",
+                            question.type === 1 ? "bg-chart-3" : "bg-chart-4"
+                          )}
+                        >
+                          {question.type === 1 ? "NP" : "TV"}
+                        </span>
+                      </div>
+                      <span
+                        aria-label="Đọc tiếng Nhật"
+                        title="Đọc tiếng Nhật"
+                        className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-background/80 hover:bg-background text-primary border border-border/60 shadow-sm cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleGridVoiceTap(question.question)
+                        }}
+                      >
+                        <Volume2 className="w-4 h-4" />
                       </span>
                     </div>
                     {/* Question */}
@@ -732,7 +824,7 @@ export function GameBoard() {
                     {index + 1}
                   </span>
                 )}
-              </button>
+              </div>
             </div>
               )
             })}
@@ -785,17 +877,65 @@ export function GameBoard() {
 
           {/* Question */}
           <div className="p-6 bg-secondary/30 rounded-xl text-center">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">Câu hỏi</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => selectedQuestion?.question && speakText(selectedQuestion.question)}
+                title="Đọc tiếng Nhật"
+              >
+                <Volume2 className="w-4 h-4" />
+              </Button>
+            </div>
             <p className="text-xl md:text-2xl font-medium leading-relaxed">
               {selectedQuestion?.question}
             </p>
           </div>
+
+          {/* Read correct answer when it's already revealed */}
+          {showAnswer &&
+            selectedQuestion &&
+            gameRound?.gameMode !== "guess" &&
+            gameRound?.gameMode !== "truefalse" && (
+              <div className="flex justify-center -mt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => speakText(selectedQuestion.correct)}
+                  className="gap-2"
+                >
+                  <Volume2 className="w-4 h-4" />
+                  Đọc đáp án đúng
+                </Button>
+              </div>
+            )}
 
           {/* True/False Mode */}
           {gameRound?.gameMode === "truefalse" && (
             <div className="space-y-4">
               <div className="p-4 bg-primary/10 rounded-xl text-center">
                 <p className="text-sm text-muted-foreground mb-2">Đáp án được đưa ra:</p>
-                <p className="text-xl font-bold">{trueFalseAnswer}</p>
+                <div className="flex items-center justify-center gap-3">
+                  <p className="text-xl font-bold">{trueFalseAnswer}</p>
+                  {!showAnswer && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => trueFalseAnswer && speakText(trueFalseAnswer)}
+                      title="Đọc tiếng Nhật"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
               {!showAnswer ? (
                 <div className="flex gap-4">
@@ -840,7 +980,19 @@ export function GameBoard() {
               {selectedQuestion?.example && (
                 <div className="pt-3 border-t border-success/20">
                   <p className="text-sm text-muted-foreground mb-1">Ví dụ:</p>
-                  <p className="text-base text-foreground italic">{selectedQuestion.example}</p>
+                  <div className="flex items-start justify-center gap-3">
+                    <p className="text-base text-foreground italic">{selectedQuestion.example}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 shrink-0 mt-0.5"
+                      onClick={() => speakText(selectedQuestion.example || "")}
+                      title="Đọc ví dụ"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
               {selectedQuestion?.mapping && (
@@ -926,8 +1078,20 @@ export function GameBoard() {
           {/* Explanation */}
           {showAnswer && selectedQuestion?.explain && (
             <div className="p-4 bg-primary/10 rounded-xl border border-primary/20">
-              <p className="text-sm font-bold mb-1 text-primary">Giải thích:</p>
-              <p className="text-sm">{selectedQuestion.explain}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-bold mb-1 text-primary">Giải thích:</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => speakText(selectedQuestion.explain || "")}
+                  title="Đọc giải thích"
+                >
+                  <Volume2 className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-sm mt-2">{selectedQuestion.explain}</p>
             </div>
           )}
 
@@ -937,7 +1101,11 @@ export function GameBoard() {
               {/* Guess Mode - Show reveal button */}
               {gameRound?.gameMode === "guess" && !showAnswer && (
                 <Button
-                  onClick={() => { setShowAnswer(true); setTimerActive(false); }}
+                  onClick={() => {
+                    revealByUserRef.current = true
+                    setShowAnswer(true)
+                    setTimerActive(false)
+                  }}
                   className="flex-1 bg-gradient-fun hover:opacity-90"
                   size="lg"
                 >

@@ -105,6 +105,19 @@ export function ReviewPlayer() {
     }
   }, [])
 
+  // iOS/Chrome can sometimes double-trigger (touch + click) and/or miss taps on small targets.
+  // Guard by timestamp so speech fires exactly once per user action.
+  const lastVoiceTapTsRef = useRef(0)
+  const handleVoiceTap = useCallback(
+    (text: string) => {
+      const now = Date.now()
+      if (now - lastVoiceTapTsRef.current < 350) return
+      lastVoiceTapTsRef.current = now
+      speakText(text)
+    },
+    [speakText]
+  )
+
   // Quiz mode
   const [selectedQuizAnswer, setSelectedQuizAnswer] = useState<number | null>(null)
   const [quizAnswered, setQuizAnswered] = useState(false)
@@ -803,8 +816,16 @@ export function ReviewPlayer() {
                           </Badge>
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={(e) => { e.stopPropagation(); speakText(currentCard.correct) }}
-                              className="p-1.5 rounded-full hover:bg-success/20 text-success transition-colors"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleVoiceTap(currentCard.correct)
+                              }}
+                              onPointerDown={(e) => {
+                                e.stopPropagation()
+                                handleVoiceTap(currentCard.correct)
+                              }}
+                              className="h-9 w-9 p-0 rounded-full hover:bg-success/20 text-success transition-colors flex items-center justify-center flex-shrink-0 z-10"
                               title="Đọc đáp án"
                             >
                               <Volume2 className="w-4 h-4" />
@@ -915,11 +936,19 @@ export function ReviewPlayer() {
                             <p className="text-xl md:text-2xl text-center text-muted-foreground bg-secondary/50 p-4 rounded-lg break-words">
                               {currentCard.question}
                             </p>
-                            <div className="p-4 md:p-6 bg-success/10 rounded-xl text-center relative">
+                            <div className="p-4 md:p-6 bg-success/10 rounded-xl text-center relative pr-12 pt-10">
                               <p className="text-2xl md:text-3xl font-bold text-success break-words">{currentCard.correct}</p>
                               <button
-                                onClick={(e) => { e.stopPropagation(); speakText(currentCard.correct) }}
-                                className="absolute top-2 right-2 p-2 rounded-full hover:bg-success/20 text-success transition-colors"
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleVoiceTap(currentCard.correct)
+                                }}
+                                onPointerDown={(e) => {
+                                  e.stopPropagation()
+                                  handleVoiceTap(currentCard.correct)
+                                }}
+                                className="absolute top-3 right-3 h-9 w-9 p-0 rounded-full hover:bg-success/20 text-success transition-colors flex items-center justify-center flex-shrink-0 z-10"
                                 title="Đọc đáp án"
                               >
                                 <Volume2 className="w-5 h-5" />
