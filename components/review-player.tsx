@@ -709,73 +709,77 @@ export function ReviewPlayer() {
             {/* Flip Mode Card */}
             {reviewMode === "flip" && (
               <div
-                className="w-full max-w-2xl cursor-pointer"
+                className="flip-card w-full max-w-2xl h-[320px] md:h-[380px] cursor-pointer"
                 onClick={handleFlip}
               >
-                {!isFlipped ? (
-                  /* Front */
-                  <Card className="w-full border-2 border-primary/20 hover:shadow-xl transition-shadow">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <Badge
-                          className={cn(
-                            "py-1",
-                            currentCard.type === 1
-                              ? "bg-chart-3 text-chart-3-foreground"
-                              : "bg-chart-4 text-chart-4-foreground"
-                          )}
-                        >
-                          {currentCard.type === 1 ? "Ngữ pháp" : "Từ vựng"}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground flex items-center gap-1">
-                          <RotateCw className="w-4 h-4" />
-                          Nhan de lat
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-6 md:p-8">
-                      <p className="text-xl md:text-2xl font-medium text-center leading-relaxed break-words">
-                        {currentCard.question}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  /* Back */
-                  <Card className="w-full border-2 border-success/50 bg-success/5 hover:shadow-xl transition-shadow">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <Badge className="bg-success text-success-foreground py-1">
-                          <Sparkles className="w-3 h-3 mr-1" />
-                          Dap an
-                        </Badge>
-                        <span className="text-sm text-muted-foreground flex items-center gap-1">
-                          <RotateCw className="w-4 h-4" />
-                          Nhan de lat
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 md:p-6 space-y-3">
-                      <p className="text-base md:text-lg text-center text-muted-foreground bg-secondary/50 p-2 md:p-3 rounded-lg break-words">
-                        {currentCard.question}
-                      </p>
-                      <div className="p-3 md:p-4 bg-success/10 rounded-xl text-center">
-                        <p className="text-xl md:text-2xl font-bold text-success break-words">{currentCard.correct}</p>
-                      </div>
-                      {currentCard.example && (
-                        <div className="p-3 md:p-4 bg-primary/10 rounded-xl">
-                          <p className="text-xs md:text-sm font-medium mb-1">Vi du:</p>
-                          <p className="text-sm md:text-base text-foreground italic break-words">{currentCard.example}</p>
+                <div className={cn("flip-card-inner", isFlipped && "flipped")}>
+                  {/* Front */}
+                  <div className="flip-card-front">
+                    <Card className="w-full h-full border-2 border-primary/20 flex flex-col hover:shadow-xl transition-shadow">
+                      <CardHeader className="pb-2 shrink-0">
+                        <div className="flex items-center justify-between">
+                          <Badge
+                            className={cn(
+                              "py-1",
+                              currentCard.type === 1
+                                ? "bg-chart-3 text-chart-3-foreground"
+                                : "bg-chart-4 text-chart-4-foreground"
+                            )}
+                          >
+                            {currentCard.type === 1 ? "Ngữ pháp" : "Từ vựng"}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground flex items-center gap-1">
+                            <RotateCw className="w-4 h-4" />
+                            Nhấn để lật
+                          </span>
                         </div>
-                      )}
-                      {currentCard.explain && (
-                        <div className="p-3 md:p-4 bg-secondary/50 rounded-xl">
-                          <p className="text-xs md:text-sm font-medium mb-1">Giai thich:</p>
-                          <p className="text-sm md:text-base text-muted-foreground break-words">{currentCard.explain}</p>
+                      </CardHeader>
+                      <CardContent className="flex-1 flex items-center justify-center p-4 md:p-6 overflow-auto">
+                        <p className="text-xl md:text-2xl font-medium text-center leading-relaxed break-words">
+                          {currentCard.question}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Back */}
+                  <div className="flip-card-back">
+                    <Card className="w-full h-full border-2 border-success/50 bg-success/5 flex flex-col hover:shadow-xl transition-shadow">
+                      <CardHeader className="pb-1 shrink-0">
+                        <div className="flex items-center justify-between">
+                          <Badge className="bg-success text-success-foreground py-1">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Đáp án
+                          </Badge>
+                          <span className="text-sm text-muted-foreground flex items-center gap-1">
+                            <RotateCw className="w-4 h-4" />
+                            Nhấn để lật
+                          </span>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
+                      </CardHeader>
+                      <CardContent className="flex-1 p-3 md:p-4 space-y-2 overflow-auto">
+                        <p className="text-sm md:text-base text-center text-muted-foreground bg-secondary/50 p-2 rounded-lg break-words">
+                          {currentCard.question}
+                        </p>
+                        <div className="p-2 md:p-3 bg-success/10 rounded-xl text-center">
+                          <p className="text-lg md:text-xl font-bold text-success break-words">{currentCard.correct}</p>
+                        </div>
+                        {currentCard.example && (
+                          <div className="p-2 md:p-3 bg-primary/10 rounded-xl">
+                            <p className="text-xs font-medium mb-0.5">Ví dụ:</p>
+                            <p className="text-xs md:text-sm text-foreground italic break-words">{currentCard.example}</p>
+                          </div>
+                        )}
+                        {currentCard.explain && (
+                          <div className="p-2 md:p-3 bg-secondary/50 rounded-xl">
+                            <p className="text-xs font-medium mb-0.5">Giải thích:</p>
+                            <p className="text-xs md:text-sm text-muted-foreground break-words">{currentCard.explain}</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
               </div>
             )}
 
