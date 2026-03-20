@@ -77,13 +77,32 @@ export function ReviewPlayer() {
   // Text-to-speech helper - extracts Japanese text to speak
   const speakText = useCallback((text: string) => {
     if (!text || typeof window === "undefined" || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
+
     // Extract only Japanese characters (kanji, hiragana, katakana) for reading
     const japaneseOnly = text.match(/[\u3000-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF・ー]+/g)?.join(" ") || text
-    const utterance = new SpeechSynthesisUtterance(japaneseOnly)
-    utterance.lang = "ja-JP"
-    utterance.rate = 0.9
-    window.speechSynthesis.speak(utterance)
+
+    const doSpeak = () => {
+      window.speechSynthesis.cancel()
+      const utterance = new SpeechSynthesisUtterance(japaneseOnly)
+      utterance.lang = "ja-JP"
+      utterance.rate = 0.9
+
+      // Try to find a Japanese voice
+      const voices = window.speechSynthesis.getVoices()
+      const jaVoice = voices.find(v => v.lang.startsWith("ja"))
+      if (jaVoice) utterance.voice = jaVoice
+
+      window.speechSynthesis.speak(utterance)
+    }
+
+    // On mobile, voices may not be loaded yet — wait for them
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.addEventListener("voiceschanged", doSpeak, { once: true })
+      // Fallback: speak anyway after short delay in case voiceschanged never fires
+      setTimeout(doSpeak, 300)
+    } else {
+      doSpeak()
+    }
   }, [])
 
   // Quiz mode
