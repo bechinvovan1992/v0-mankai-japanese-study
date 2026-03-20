@@ -150,6 +150,18 @@ export function GameBoard() {
   // - Never stack speech across re-renders
   const revealByUserRef = useRef(false)
   const lastAutoSpokenKeyRef = useRef<string | null>(null)
+  const lastGridVoiceTapTsRef = useRef(0)
+
+  const handleGridVoiceTap = useCallback(
+    (text: string) => {
+      // iOS/Chrome can sometimes trigger both touch + click; guard to avoid double speak.
+      const now = Date.now()
+      if (now - lastGridVoiceTapTsRef.current < 400) return
+      lastGridVoiceTapTsRef.current = now
+      speakText(text)
+    },
+    [speakText]
+  )
 
   // Timer countdown effect for speed and guess mode
   useEffect(() => {
@@ -741,8 +753,16 @@ export function GameBoard() {
               
               return (
               <div key={question.id} className="relative">
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => handleCellClick(question, index)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    handleCellClick(question, index)
+                  }
+                }}
                 className={cn(
                   "w-full min-h-[100px] md:min-h-[120px] rounded-xl md:rounded-2xl border-2 transition-all flex flex-col p-2 text-left shadow-sm overflow-hidden",
                   question.played
@@ -752,30 +772,33 @@ export function GameBoard() {
                     : "bg-card border-primary/30 hover:border-primary hover:bg-primary/5 hover:shadow-lg active:scale-95 md:hover:scale-105 cursor-pointer items-center justify-center"
                 )}
               >
-                {question.played && (
-                  <span
-                    role="button"
-                    aria-label="Đọc tiếng Nhật"
-                    title="Đọc tiếng Nhật"
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background text-primary border border-border/60 shadow-sm cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      speakText(question.question)
-                    }}
-                  >
-                    <Volume2 className="w-4 h-4" />
-                  </span>
-                )}
                 {question.played ? (
                   <div className="flex flex-col gap-1 w-full overflow-hidden h-full">
                     {/* Header: Number and Badge */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-xs md:text-sm font-bold text-primary">#{index + 1}</span>
-                      <span className={cn(
-                        "text-[8px] md:text-[10px] px-1 py-0.5 rounded text-white",
-                        question.type === 1 ? "bg-chart-3" : "bg-chart-4"
-                      )}>
-                        {question.type === 1 ? "NP" : "TV"}
+                    <div className="flex items-start justify-between gap-2 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-xs md:text-sm font-bold text-primary">
+                          #{index + 1}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[8px] md:text-[10px] px-1 py-0.5 rounded text-white",
+                            question.type === 1 ? "bg-chart-3" : "bg-chart-4"
+                          )}
+                        >
+                          {question.type === 1 ? "NP" : "TV"}
+                        </span>
+                      </div>
+                      <span
+                        aria-label="Đọc tiếng Nhật"
+                        title="Đọc tiếng Nhật"
+                        className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-background/80 hover:bg-background text-primary border border-border/60 shadow-sm cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleGridVoiceTap(question.question)
+                        }}
+                      >
+                        <Volume2 className="w-4 h-4" />
                       </span>
                     </div>
                     {/* Question */}
@@ -801,7 +824,7 @@ export function GameBoard() {
                     {index + 1}
                   </span>
                 )}
-              </button>
+              </div>
             </div>
               )
             })}
