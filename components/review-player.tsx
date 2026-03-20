@@ -77,12 +77,24 @@ export function ReviewPlayer() {
   // Text-to-speech helper - extracts Japanese text to speak
   const speakText = useCallback((text: string) => {
     if (!text || typeof window === "undefined" || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
+
     // Extract only Japanese characters (kanji, hiragana, katakana) for reading
     const japaneseOnly = text.match(/[\u3000-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF・ー]+/g)?.join(" ") || text
+
+    // IMPORTANT: On iOS Safari, speak() MUST be called synchronously in the user gesture.
+    // Never call speak() inside setTimeout or async callbacks — iOS blocks it.
+    window.speechSynthesis.cancel()
+
     const utterance = new SpeechSynthesisUtterance(japaneseOnly)
     utterance.lang = "ja-JP"
     utterance.rate = 0.9
+
+    // Try to use a Japanese voice if available (may be empty on first call on some devices)
+    const voices = window.speechSynthesis.getVoices()
+    const jaVoice = voices.find(v => v.lang.startsWith("ja"))
+    if (jaVoice) utterance.voice = jaVoice
+
+    // Speak immediately — required for iOS gesture lock
     window.speechSynthesis.speak(utterance)
   }, [])
 
