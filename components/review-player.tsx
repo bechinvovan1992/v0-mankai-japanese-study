@@ -81,28 +81,21 @@ export function ReviewPlayer() {
     // Extract only Japanese characters (kanji, hiragana, katakana) for reading
     const japaneseOnly = text.match(/[\u3000-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF・ー]+/g)?.join(" ") || text
 
-    const doSpeak = () => {
-      window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(japaneseOnly)
-      utterance.lang = "ja-JP"
-      utterance.rate = 0.9
+    // IMPORTANT: On iOS Safari, speak() MUST be called synchronously in the user gesture.
+    // Never call speak() inside setTimeout or async callbacks — iOS blocks it.
+    window.speechSynthesis.cancel()
 
-      // Try to find a Japanese voice
-      const voices = window.speechSynthesis.getVoices()
-      const jaVoice = voices.find(v => v.lang.startsWith("ja"))
-      if (jaVoice) utterance.voice = jaVoice
+    const utterance = new SpeechSynthesisUtterance(japaneseOnly)
+    utterance.lang = "ja-JP"
+    utterance.rate = 0.9
 
-      window.speechSynthesis.speak(utterance)
-    }
+    // Try to use a Japanese voice if available (may be empty on first call on some devices)
+    const voices = window.speechSynthesis.getVoices()
+    const jaVoice = voices.find(v => v.lang.startsWith("ja"))
+    if (jaVoice) utterance.voice = jaVoice
 
-    // On mobile, voices may not be loaded yet — wait for them
-    if (window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.addEventListener("voiceschanged", doSpeak, { once: true })
-      // Fallback: speak anyway after short delay in case voiceschanged never fires
-      setTimeout(doSpeak, 300)
-    } else {
-      doSpeak()
-    }
+    // Speak immediately — required for iOS gesture lock
+    window.speechSynthesis.speak(utterance)
   }, [])
 
   // iOS/Chrome can sometimes double-trigger (touch + click) and/or miss taps on small targets.
