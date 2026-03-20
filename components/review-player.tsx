@@ -803,7 +803,7 @@ export function ReviewPlayer() {
             {/* Fullscreen Mode */}
             {isFullscreen && reviewMode === "flip" && (
               <div className="fixed inset-0 z-50 bg-background flex flex-col">
-                {/* Fullscreen Header with Navigation */}
+                {/* Fullscreen Header */}
                 <div className="flex items-center justify-between p-4 border-b shrink-0">
                   <Button
                     variant="outline"
@@ -811,53 +811,42 @@ export function ReviewPlayer() {
                     onClick={() => setIsFullscreen(false)}
                   >
                     <Minimize className="w-4 h-4 mr-1" />
-                    Thoát
+                    Thoat
                   </Button>
                   
-                  {/* Navigation Controls in Header */}
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-10 w-10"
-                      onClick={() => { handlePrev(); setIsFlipped(false); }}
-                      disabled={currentIndex === 0}
+                    <span className="text-sm font-medium">
+                      {currentIndex + 1} / {reviewQuestions.length}
+                    </span>
+                    <Badge
+                      className={cn(
+                        "py-1",
+                        currentCard.type === 1
+                          ? "bg-chart-3 text-chart-3-foreground"
+                          : "bg-chart-4 text-chart-4-foreground"
+                      )}
                     >
-                      <ChevronLeft className="w-6 h-6" />
-                    </Button>
-                    <div className="flex items-center gap-2 px-3">
-                      <span className="text-sm font-medium">
-                        {currentIndex + 1} / {reviewQuestions.length}
-                      </span>
-                      <Badge
-                        className={cn(
-                          "py-1",
-                          currentCard.type === 1
-                            ? "bg-chart-3 text-chart-3-foreground"
-                            : "bg-chart-4 text-chart-4-foreground"
-                        )}
-                      >
-                        {currentCard.type === 1 ? "NP" : "TV"}
-                      </Badge>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-10 w-10"
-                      onClick={() => { handleNext(); setIsFlipped(false); }}
-                      disabled={currentIndex === reviewQuestions.length - 1}
-                    >
-                      <ChevronRight className="w-6 h-6" />
-                    </Button>
+                      {currentCard.type === 1 ? "Ngu phap" : "Tu vung"}
+                    </Badge>
                   </div>
                   
                   <div className="w-[72px]"></div>
                 </div>
 
-                {/* Fullscreen Card */}
+                {/* Fullscreen Card with Side Navigation */}
                 <div className="flex-1 flex items-center justify-center p-4">
+                  {/* Left Navigation Button */}
+                  <button
+                    className="h-32 md:h-48 px-2 md:px-4 text-primary/60 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+                    onClick={() => { handlePrev(); setIsFlipped(false); }}
+                    disabled={currentIndex === 0}
+                  >
+                    <ChevronLeft className="w-10 h-10 md:w-14 md:h-14" strokeWidth={1.5} />
+                  </button>
+
+                  {/* Flip Card */}
                   <div
-                    className="flip-card w-full max-w-3xl h-[75vh] cursor-pointer"
+                    className="flip-card flex-1 max-w-3xl h-[70vh] cursor-pointer"
                     onClick={handleFlip}
                   >
                     <div className={cn("flip-card-inner", isFlipped && "flipped")}>
@@ -907,6 +896,15 @@ export function ReviewPlayer() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Right Navigation Button */}
+                  <button
+                    className="h-32 md:h-48 px-2 md:px-4 text-primary/60 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+                    onClick={() => { handleNext(); setIsFlipped(false); }}
+                    disabled={currentIndex === reviewQuestions.length - 1}
+                  >
+                    <ChevronRight className="w-10 h-10 md:w-14 md:h-14" strokeWidth={1.5} />
+                  </button>
                 </div>
               </div>
             )}
