@@ -74,6 +74,13 @@ export interface Settings {
   guessTimerSeconds: number // Timer for guess mode (default 10)
 }
 
+/** Tùy chọn khi markQuestionPlayed(..., false) — trừ điểm team / bỏ trừ player (ví dụ cướp điểm thất bại) */
+export interface MarkQuestionWrongOptions {
+  wrongTeamId?: string | null
+  /** Mặc định true. false = không trừ điểm player hiện tại (chỉ trừ điểm đội nếu có) */
+  deductCurrentPlayer?: boolean
+}
+
 export interface DataIndex {
   files: {
     id: string

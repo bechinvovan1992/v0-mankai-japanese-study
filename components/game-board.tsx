@@ -42,6 +42,8 @@ import {
   Trash2,
   Music,
   VolumeX,
+  Minus,
+  Plus,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -84,6 +86,7 @@ export function GameBoard() {
     setupTeams,
     nextTeam,
     addTeamScore,
+    adjustPlayerScore,
     resetAllSelectedPlayed,
     loadDatasetsFromGoogleSheet,
   } = useAppStore()
@@ -190,6 +193,11 @@ export function GameBoard() {
     setIsMusicPlaying(!isMusicPlaying)
   }
 
+  const handleAdjustPlayerScore = (playerId: string, delta: number) => {
+    adjustPlayerScore(playerId, delta)
+    toast.success(delta > 0 ? "Đã cộng điểm" : "Đã trừ điểm")
+  }
+
   const resetQuestionState = useCallback(() => {
     setSelectedQuestion(null)
     setShowAnswer(false)
@@ -264,53 +272,80 @@ export function GameBoard() {
   }
 
   const handleMarkWrong = () => {
-    if (!selectedQuestion) return
+    if (!selectedQuestion || !gameRound) return
     playWrong()
-    
-    if (gameRound?.gameMode === "suddendeath") {
+
+    if (gameRound.gameMode === "suddendeath") {
       const currentPlayer = gameRound.players[gameRound.currentPlayerIndex]
       eliminatePlayer(currentPlayer.id)
       toast.error(`${currentPlayer.name} bị loại!`)
-      
-      // Check if only one player remains
+
       const remainingPlayers = gameRound.players.filter(
         (p) => !gameRound.suddenDeathEliminated?.includes(p.id) && p.id !== currentPlayer.id
       )
       if (remainingPlayers.length === 1) {
         toast.success(`${remainingPlayers[0].name} chiến thắng!`)
       }
-    } else if (gameRound?.gameMode === "teambattle" && !canSteal) {
-      setCanSteal(true)
-      toast.info("Đội kia có thể cướp điểm!")
+
+      markQuestionPlayed(selectedQuestion.id, false)
+      nextPlayer()
+      resetQuestionState()
+      toast.error("Sai rồi!")
       return
     }
-    
+
+    if (gameRound.gameMode === "teambattle" && !canSteal) {
+      const currentPlayer = gameRound.players[gameRound.currentPlayerIndex]
+      const currentTeam = gameRound.teams?.[gameRound.currentTeamIndex || 0]
+      adjustPlayerScore(currentPlayer.id, -1)
+      if (currentTeam) {
+        addTeamScore(currentTeam.id, -1)
+      }
+      setCanSteal(true)
+      toast.info("Đội kia có thể cướp điểm!")
+      toast.error(
+        `${currentPlayer.name} -1 điểm${currentTeam ? ` · ${currentTeam.name} -1` : ""}. Sai rồi!`
+      )
+      return
+    }
+
+    const penalizedPlayer = gameRound.players[gameRound.currentPlayerIndex]
+    const isTeamBattle = gameRound.gameMode === "teambattle"
+
     markQuestionPlayed(selectedQuestion.id, false)
-    
-    if (gameRound?.gameMode === "teambattle") {
+
+    if (isTeamBattle) {
       nextTeam()
     } else {
       nextPlayer()
     }
-    
+
     resetQuestionState()
-    toast.error("Sai rồi!")
+    toast.error(
+      isTeamBattle
+        ? `${penalizedPlayer.name} -1 điểm · đội đang chơi -1. Sai rồi!`
+        : `${penalizedPlayer.name} -1 điểm. Sai rồi!`
+    )
   }
 
   const handleSteal = (correct: boolean) => {
     if (!selectedQuestion || !gameRound?.teams) return
-    
+
     const otherTeamIndex = ((gameRound.currentTeamIndex || 0) + 1) % gameRound.teams.length
     const otherTeam = gameRound.teams[otherTeamIndex]
-    
+
     if (correct) {
       addTeamScore(otherTeam.id, 1)
       toast.success(`${otherTeam.name} cướp điểm thành công!`)
+      markQuestionPlayed(selectedQuestion.id, true)
     } else {
-      toast.error(`${otherTeam.name} cướp điểm thất bại!`)
+      toast.error(`${otherTeam.name} -1 điểm · cướp điểm thất bại!`)
+      markQuestionPlayed(selectedQuestion.id, false, 0, {
+        wrongTeamId: otherTeam.id,
+        deductCurrentPlayer: false,
+      })
     }
-    
-    markQuestionPlayed(selectedQuestion.id, correct)
+
     nextTeam()
     resetQuestionState()
   }
@@ -349,8 +384,9 @@ export function GameBoard() {
     }
   }
 
-  const currentPlayer = gameRound?.players[gameRound.currentPlayerIndex]
-  const currentPlayerColor = playerColors[gameRound?.currentPlayerIndex % playerColors.length || 0]
+  const currentPlayerIndex = gameRound?.currentPlayerIndex ?? 0
+  const currentPlayer = gameRound?.players[currentPlayerIndex]
+  const currentPlayerColor = playerColors[currentPlayerIndex % playerColors.length]
   const boardColumns = settings.boardColumns || 4
 
   const allQuestions = gameRound?.questions || []
@@ -544,6 +580,22 @@ export function GameBoard() {
           </Button>
         </div>
       </div>
+
+      {/* Center-fixed ticker for quick leaderboard access */}
+      <button
+        type="button"
+        onClick={() => setShowScoreboard(true)}
+        className="fixed bottom-6 right-6 z-50 rounded-full border bg-background/95 px-4 py-2 shadow-lg backdrop-blur transition hover:scale-[1.02] hover:border-primary"
+      >
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Trophy className="h-4 w-4 text-warning" />
+          <span className="whitespace-nowrap">
+            {sortedPlayers.length > 0
+              ? `Top: ${sortedPlayers[0].name} (${sortedPlayers[0].score}) - mở bảng điểm`
+              : "Mở bảng điểm"}
+          </span>
+        </div>
+      </button>
 
       {/* Team Scores for Team Battle */}
       {gameRound.gameMode === "teambattle" && gameRound.teams && (
@@ -995,7 +1047,7 @@ export function GameBoard() {
               <div
                 key={player.id}
                 className={cn(
-                  "flex items-center justify-between p-4 rounded-xl",
+                  "flex items-center justify-between gap-3 p-4 rounded-xl",
                   index === 0 && "bg-gradient-warning"
                 )}
               >
@@ -1010,12 +1062,33 @@ export function GameBoard() {
                     {player.name}
                   </span>
                 </div>
-                <span className={cn(
-                  "text-2xl font-bold",
-                  index === 0 ? "text-warning-foreground" : "text-primary"
-                )}>
-                  {player.score}
-                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8"
+                    onClick={() => handleAdjustPlayerScore(player.id, -1)}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span
+                    className={cn(
+                      "min-w-10 text-center text-2xl font-bold",
+                      index === 0 ? "text-warning-foreground" : "text-primary"
+                    )}
+                  >
+                    {player.score}
+                  </span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleAdjustPlayerScore(player.id, 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
