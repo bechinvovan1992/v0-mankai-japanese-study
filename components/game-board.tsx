@@ -558,7 +558,7 @@ export function GameBoard() {
       <button
         type="button"
         onClick={() => setShowScoreboard(true)}
-        className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full border bg-background/95 px-4 py-2 shadow-lg backdrop-blur transition hover:scale-[1.02] hover:border-primary"
+        className="fixed bottom-6 right-6 z-50 rounded-full border bg-background/95 px-4 py-2 shadow-lg backdrop-blur transition hover:scale-[1.02] hover:border-primary"
       >
         <div className="flex items-center gap-2 text-sm font-medium">
           <Trophy className="h-4 w-4 text-warning" />
