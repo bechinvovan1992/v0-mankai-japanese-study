@@ -37,6 +37,7 @@ import {
   Settings,
   Maximize,
   Minimize,
+  Volume2,
 } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -72,6 +73,18 @@ export function ReviewPlayer() {
   const [backTime, setBackTime] = useState(settings.autoPlayBackTime)
   const [showAnswer, setShowAnswer] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+
+  // Text-to-speech helper - extracts Japanese text to speak
+  const speakText = useCallback((text: string) => {
+    if (!text || typeof window === "undefined" || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    // Extract only Japanese characters (kanji, hiragana, katakana) for reading
+    const japaneseOnly = text.match(/[\u3000-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF・ー]+/g)?.join(" ") || text
+    const utterance = new SpeechSynthesisUtterance(japaneseOnly)
+    utterance.lang = "ja-JP"
+    utterance.rate = 0.9
+    window.speechSynthesis.speak(utterance)
+  }, [])
 
   // Quiz mode
   const [selectedQuizAnswer, setSelectedQuizAnswer] = useState<number | null>(null)
@@ -272,8 +285,10 @@ export function ReviewPlayer() {
       if (!isShowingAnswer) {
         if (reviewMode === "flip") {
           setIsFlipped(true)
+          speakText(currentCard.correct)
         } else {
           setShowAnswer(true)
+          speakText(currentCard.correct)
         }
       } else {
         if (currentIndex < reviewQuestions.length - 1) {
@@ -292,7 +307,7 @@ export function ReviewPlayer() {
       if (timerRef.current) clearTimeout(timerRef.current)
       if (progressRef.current) clearInterval(progressRef.current)
     }
-  }, [isAutoPlaying, isFlipped, showAnswer, frontTime, backTime, currentIndex, reviewQuestions.length, reviewMode, stopAutoPlay])
+  }, [isAutoPlaying, isFlipped, showAnswer, frontTime, backTime, currentIndex, reviewQuestions.length, reviewMode, stopAutoPlay, speakText, currentCard?.correct])
 
   const handleFlip = () => {
     if (!isAutoPlaying && reviewMode === "flip") {
@@ -767,10 +782,19 @@ export function ReviewPlayer() {
                             <Sparkles className="w-3 h-3 mr-1" />
                             Đáp án
                           </Badge>
-                          <span className="text-sm text-muted-foreground flex items-center gap-1">
-                            <RotateCw className="w-4 h-4" />
-                            Nhấn để lật
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); speakText(currentCard.correct) }}
+                              className="p-1.5 rounded-full hover:bg-success/20 text-success transition-colors"
+                              title="Đọc đáp án"
+                            >
+                              <Volume2 className="w-4 h-4" />
+                            </button>
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <RotateCw className="w-4 h-4" />
+                              Nhấn để lật
+                            </span>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="flex-1 p-3 md:p-4 space-y-2 overflow-auto">
@@ -872,8 +896,15 @@ export function ReviewPlayer() {
                             <p className="text-xl md:text-2xl text-center text-muted-foreground bg-secondary/50 p-4 rounded-lg break-words">
                               {currentCard.question}
                             </p>
-                            <div className="p-4 md:p-6 bg-success/10 rounded-xl text-center">
+                            <div className="p-4 md:p-6 bg-success/10 rounded-xl text-center relative">
                               <p className="text-2xl md:text-3xl font-bold text-success break-words">{currentCard.correct}</p>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); speakText(currentCard.correct) }}
+                                className="absolute top-2 right-2 p-2 rounded-full hover:bg-success/20 text-success transition-colors"
+                                title="Đọc đáp án"
+                              >
+                                <Volume2 className="w-5 h-5" />
+                              </button>
                             </div>
                             {currentCard.example && (
                               <div className="p-4 bg-primary/10 rounded-xl">
