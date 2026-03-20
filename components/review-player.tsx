@@ -74,11 +74,13 @@ export function ReviewPlayer() {
   const [showAnswer, setShowAnswer] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  // Text-to-speech helper
+  // Text-to-speech helper - extracts Japanese text to speak
   const speakText = useCallback((text: string) => {
     if (!text || typeof window === "undefined" || !window.speechSynthesis) return
     window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
+    // Extract only Japanese characters (kanji, hiragana, katakana) for reading
+    const japaneseOnly = text.match(/[\u3000-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF・ー]+/g)?.join(" ") || text
+    const utterance = new SpeechSynthesisUtterance(japaneseOnly)
     utterance.lang = "ja-JP"
     utterance.rate = 0.9
     window.speechSynthesis.speak(utterance)
