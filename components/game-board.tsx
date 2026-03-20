@@ -42,6 +42,8 @@ import {
   Trash2,
   Music,
   VolumeX,
+  Minus,
+  Plus,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -84,6 +86,7 @@ export function GameBoard() {
     setupTeams,
     nextTeam,
     addTeamScore,
+    adjustPlayerScore,
     resetAllSelectedPlayed,
     loadDatasetsFromGoogleSheet,
   } = useAppStore()
@@ -188,6 +191,11 @@ export function GameBoard() {
   const handleToggleMusic = () => {
     toggleBgMusic()
     setIsMusicPlaying(!isMusicPlaying)
+  }
+
+  const handleAdjustPlayerScore = (playerId: string, delta: number) => {
+    adjustPlayerScore(playerId, delta)
+    toast.success(delta > 0 ? "Đã cộng điểm" : "Đã trừ điểm")
   }
 
   const resetQuestionState = useCallback(() => {
@@ -349,8 +357,9 @@ export function GameBoard() {
     }
   }
 
-  const currentPlayer = gameRound?.players[gameRound.currentPlayerIndex]
-  const currentPlayerColor = playerColors[gameRound?.currentPlayerIndex % playerColors.length || 0]
+  const currentPlayerIndex = gameRound?.currentPlayerIndex ?? 0
+  const currentPlayer = gameRound?.players[currentPlayerIndex]
+  const currentPlayerColor = playerColors[currentPlayerIndex % playerColors.length]
   const boardColumns = settings.boardColumns || 4
 
   const allQuestions = gameRound?.questions || []
@@ -544,6 +553,22 @@ export function GameBoard() {
           </Button>
         </div>
       </div>
+
+      {/* Center-fixed ticker for quick leaderboard access */}
+      <button
+        type="button"
+        onClick={() => setShowScoreboard(true)}
+        className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full border bg-background/95 px-4 py-2 shadow-lg backdrop-blur transition hover:scale-[1.02] hover:border-primary"
+      >
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Trophy className="h-4 w-4 text-warning" />
+          <span className="whitespace-nowrap">
+            {sortedPlayers.length > 0
+              ? `Top: ${sortedPlayers[0].name} (${sortedPlayers[0].score}) - mở bảng điểm`
+              : "Mở bảng điểm"}
+          </span>
+        </div>
+      </button>
 
       {/* Team Scores for Team Battle */}
       {gameRound.gameMode === "teambattle" && gameRound.teams && (
@@ -995,7 +1020,7 @@ export function GameBoard() {
               <div
                 key={player.id}
                 className={cn(
-                  "flex items-center justify-between p-4 rounded-xl",
+                  "flex items-center justify-between gap-3 p-4 rounded-xl",
                   index === 0 && "bg-gradient-warning"
                 )}
               >
@@ -1010,12 +1035,33 @@ export function GameBoard() {
                     {player.name}
                   </span>
                 </div>
-                <span className={cn(
-                  "text-2xl font-bold",
-                  index === 0 ? "text-warning-foreground" : "text-primary"
-                )}>
-                  {player.score}
-                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8"
+                    onClick={() => handleAdjustPlayerScore(player.id, -1)}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span
+                    className={cn(
+                      "min-w-10 text-center text-2xl font-bold",
+                      index === 0 ? "text-warning-foreground" : "text-primary"
+                    )}
+                  >
+                    {player.score}
+                  </span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleAdjustPlayerScore(player.id, 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

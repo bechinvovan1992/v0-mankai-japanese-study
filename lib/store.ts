@@ -28,6 +28,7 @@ interface AppState {
   addPlayer: (name: string) => void
   updatePlayer: (id: string, name: string) => void
   removePlayer: (id: string) => void
+  adjustPlayerScore: (id: string, delta: number) => void
   randomizePlayers: () => void
   resetPlayers: () => void
 
@@ -223,6 +224,20 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           players: state.players.filter((p) => p.id !== id),
         })),
+      adjustPlayerScore: (id, delta) =>
+        set((state) => ({
+          players: state.players.map((p) =>
+            p.id === id ? { ...p, score: p.score + delta } : p
+          ),
+          gameRound: state.gameRound
+            ? {
+                ...state.gameRound,
+                players: state.gameRound.players.map((p) =>
+                  p.id === id ? { ...p, score: p.score + delta } : p
+                ),
+              }
+            : state.gameRound,
+        })),
       randomizePlayers: () =>
         set((state) => ({
           players: [...state.players].sort(() => Math.random() - 0.5),
@@ -249,7 +264,7 @@ export const useAppStore = create<AppState>()(
             score: 0,
             correctCount: 0,
             wrongCount: 0,
-            assignedQuestions: [],
+            assignedQuestions: [] as Question[],
           }))
 
         // Distribute questions to players
