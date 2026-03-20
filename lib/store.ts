@@ -2,7 +2,16 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { Dataset, Player, GameRound, Settings, Question, GameMode, Team } from "./types"
+import type {
+  Dataset,
+  Player,
+  GameRound,
+  Settings,
+  Question,
+  GameMode,
+  Team,
+  MarkQuestionWrongOptions,
+} from "./types"
 
 interface AppState {
   // Datasets
@@ -38,7 +47,12 @@ interface AppState {
   setGameMode: (mode: GameMode) => void
   startGame: () => void
   endGame: () => void
-  markQuestionPlayed: (questionId: string, correct: boolean, bonusPoints?: number) => void
+  markQuestionPlayed: (
+    questionId: string,
+    correct: boolean,
+    bonusPoints?: number,
+    wrongOptions?: MarkQuestionWrongOptions
+  ) => void
   nextPlayer: () => void
   eliminatePlayer: (playerId: string) => void
   setupTeams: (numTeams: number) => void
@@ -298,28 +312,61 @@ export const useAppStore = create<AppState>()(
         })
       },
       endGame: () => set({ gameRound: null }),
-      markQuestionPlayed: (questionId, correct, bonusPoints = 0) =>
+      markQuestionPlayed: (questionId, correct, bonusPoints = 0, wrongOptions) =>
         set((state) => {
           if (!state.gameRound) return state
           const currentPlayer = state.gameRound.players[state.gameRound.currentPlayerIndex]
-          const pointsToAdd = bonusPoints > 0 ? bonusPoints : (correct ? 1 : 0)
+          const mode = state.gameRound.gameMode
+
+          const deductPlayerOnWrong =
+            !correct &&
+            bonusPoints === 0 &&
+            wrongOptions?.deductCurrentPlayer !== false &&
+            mode !== "suddendeath"
+
+          const pointsToAdd =
+            bonusPoints > 0 ? bonusPoints : correct ? 1 : deductPlayerOnWrong ? -1 : 0
+
+          let nextGameRound = { ...state.gameRound }
+
+          nextGameRound.players = nextGameRound.players.map((p) =>
+            p.id === currentPlayer.id
+              ? {
+                  ...p,
+                  score: p.score + pointsToAdd,
+                  correctCount: correct || bonusPoints > 0 ? p.correctCount + 1 : p.correctCount,
+                  wrongCount: correct || bonusPoints > 0 ? p.wrongCount : p.wrongCount + 1,
+                  assignedQuestions: p.assignedQuestions.map((q) =>
+                    q.id === questionId ? { ...q, played: true } : q
+                  ),
+                }
+              : p
+          )
+
+          if (
+            !correct &&
+            bonusPoints === 0 &&
+            mode === "teambattle" &&
+            nextGameRound.teams &&
+            nextGameRound.teams.length > 0
+          ) {
+            const teamId =
+              wrongOptions?.wrongTeamId ??
+              nextGameRound.teams[nextGameRound.currentTeamIndex || 0]?.id
+            if (teamId) {
+              nextGameRound.teams = nextGameRound.teams.map((t) =>
+                t.id === teamId ? { ...t, score: t.score - 1 } : t
+              )
+            }
+          }
+
           return {
             gameRound: {
-              ...state.gameRound,
-              remainingQuestions: bonusPoints > 0 ? state.gameRound.remainingQuestions : state.gameRound.remainingQuestions - 1,
-              players: state.gameRound.players.map((p) =>
-                p.id === currentPlayer.id
-                  ? {
-                      ...p,
-                      score: p.score + pointsToAdd,
-                      correctCount: correct || bonusPoints > 0 ? p.correctCount + 1 : p.correctCount,
-                      wrongCount: correct || bonusPoints > 0 ? p.wrongCount : p.wrongCount + 1,
-                      assignedQuestions: p.assignedQuestions.map((q) =>
-                        q.id === questionId ? { ...q, played: true } : q
-                      ),
-                    }
-                  : p
-              ),
+              ...nextGameRound,
+              remainingQuestions:
+                bonusPoints > 0
+                  ? state.gameRound.remainingQuestions
+                  : state.gameRound.remainingQuestions - 1,
               questions: state.gameRound.questions.map((q) =>
                 q.id === questionId ? { ...q, played: true } : q
               ),

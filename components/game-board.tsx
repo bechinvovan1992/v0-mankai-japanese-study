@@ -272,53 +272,80 @@ export function GameBoard() {
   }
 
   const handleMarkWrong = () => {
-    if (!selectedQuestion) return
+    if (!selectedQuestion || !gameRound) return
     playWrong()
-    
-    if (gameRound?.gameMode === "suddendeath") {
+
+    if (gameRound.gameMode === "suddendeath") {
       const currentPlayer = gameRound.players[gameRound.currentPlayerIndex]
       eliminatePlayer(currentPlayer.id)
       toast.error(`${currentPlayer.name} bị loại!`)
-      
-      // Check if only one player remains
+
       const remainingPlayers = gameRound.players.filter(
         (p) => !gameRound.suddenDeathEliminated?.includes(p.id) && p.id !== currentPlayer.id
       )
       if (remainingPlayers.length === 1) {
         toast.success(`${remainingPlayers[0].name} chiến thắng!`)
       }
-    } else if (gameRound?.gameMode === "teambattle" && !canSteal) {
-      setCanSteal(true)
-      toast.info("Đội kia có thể cướp điểm!")
+
+      markQuestionPlayed(selectedQuestion.id, false)
+      nextPlayer()
+      resetQuestionState()
+      toast.error("Sai rồi!")
       return
     }
-    
+
+    if (gameRound.gameMode === "teambattle" && !canSteal) {
+      const currentPlayer = gameRound.players[gameRound.currentPlayerIndex]
+      const currentTeam = gameRound.teams?.[gameRound.currentTeamIndex || 0]
+      adjustPlayerScore(currentPlayer.id, -1)
+      if (currentTeam) {
+        addTeamScore(currentTeam.id, -1)
+      }
+      setCanSteal(true)
+      toast.info("Đội kia có thể cướp điểm!")
+      toast.error(
+        `${currentPlayer.name} -1 điểm${currentTeam ? ` · ${currentTeam.name} -1` : ""}. Sai rồi!`
+      )
+      return
+    }
+
+    const penalizedPlayer = gameRound.players[gameRound.currentPlayerIndex]
+    const isTeamBattle = gameRound.gameMode === "teambattle"
+
     markQuestionPlayed(selectedQuestion.id, false)
-    
-    if (gameRound?.gameMode === "teambattle") {
+
+    if (isTeamBattle) {
       nextTeam()
     } else {
       nextPlayer()
     }
-    
+
     resetQuestionState()
-    toast.error("Sai rồi!")
+    toast.error(
+      isTeamBattle
+        ? `${penalizedPlayer.name} -1 điểm · đội đang chơi -1. Sai rồi!`
+        : `${penalizedPlayer.name} -1 điểm. Sai rồi!`
+    )
   }
 
   const handleSteal = (correct: boolean) => {
     if (!selectedQuestion || !gameRound?.teams) return
-    
+
     const otherTeamIndex = ((gameRound.currentTeamIndex || 0) + 1) % gameRound.teams.length
     const otherTeam = gameRound.teams[otherTeamIndex]
-    
+
     if (correct) {
       addTeamScore(otherTeam.id, 1)
       toast.success(`${otherTeam.name} cướp điểm thành công!`)
+      markQuestionPlayed(selectedQuestion.id, true)
     } else {
-      toast.error(`${otherTeam.name} cướp điểm thất bại!`)
+      toast.error(`${otherTeam.name} -1 điểm · cướp điểm thất bại!`)
+      markQuestionPlayed(selectedQuestion.id, false, 0, {
+        wrongTeamId: otherTeam.id,
+        deductCurrentPlayer: false,
+      })
     }
-    
-    markQuestionPlayed(selectedQuestion.id, correct)
+
     nextTeam()
     resetQuestionState()
   }
