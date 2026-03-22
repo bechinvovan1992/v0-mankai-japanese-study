@@ -61,7 +61,7 @@ const gameModes: { id: GameMode; name: string; description: string; icon: React.
   { id: "guess", name: "Đoán đáp án", description: "Trả lời miệng, sau đó xem đáp án", icon: HelpCircle, formatType: "simple" },
   { id: "multiple", name: "Trắc nghiệm", description: "Chọn 1 trong 4 đáp án", icon: Target, formatType: "full" },
   { id: "elimination", name: "Loại trừ", description: "Loại 2 đáp án sai trước", icon: Zap, formatType: "full" },
-  { id: "speed", name: "Tốc độ", description: "Trả lời trong 10 giây", icon: Timer, formatType: "full" },
+  { id: "speed", name: "Tốc độ", description: "Trả lời trong 15 giây", icon: Timer, formatType: "full" },
   { id: "hidden", name: "Ẩn đáp án", description: "Đáp án ẩn 3 giây đầu", icon: EyeOff, formatType: "full" },
   { id: "truefalse", name: "Đúng/Sai", description: "Đoán đáp án đúng hay sai", icon: ThumbsUp, formatType: "full" },
   { id: "suddendeath", name: "Sinh tử", description: "Trả lời sai bị loại", icon: Skull, formatType: "full" },
@@ -682,25 +682,76 @@ export function GameSetup({ onStartGame }: { onStartGame: () => void }) {
                         <p className="text-xs text-muted-foreground">Số giây để trả lời mỗi câu hỏi</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
+                        <Button variant="outline" size="icon" className="h-8 w-8"
                           onClick={() => settings.guessTimerSeconds > 1 && updateSettings({ guessTimerSeconds: settings.guessTimerSeconds - 1 })}
-                          disabled={settings.guessTimerSeconds <= 1}
-                        >
-                          -
-                        </Button>
+                          disabled={settings.guessTimerSeconds <= 1}>-</Button>
                         <span className="w-12 text-center font-bold text-lg">{settings.guessTimerSeconds}s</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
+                        <Button variant="outline" size="icon" className="h-8 w-8"
                           onClick={() => settings.guessTimerSeconds < 60 && updateSettings({ guessTimerSeconds: settings.guessTimerSeconds + 1 })}
-                          disabled={settings.guessTimerSeconds >= 60}
-                        >
-                          +
-                        </Button>
+                          disabled={settings.guessTimerSeconds >= 60}>+</Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Timer setting for speed mode */}
+                {selectedGameMode === "speed" && (
+                  <div className="mt-4 p-4 bg-secondary/30 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">Thời gian đếm ngược</p>
+                        <p className="text-xs text-muted-foreground">Số giây để trả lời mỗi câu hỏi</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="h-8 w-8"
+                          onClick={() => (settings.speedTimerSeconds ?? 15) > 1 && updateSettings({ speedTimerSeconds: (settings.speedTimerSeconds ?? 15) - 1 })}
+                          disabled={(settings.speedTimerSeconds ?? 15) <= 1}>-</Button>
+                        <span className="w-12 text-center font-bold text-lg">{settings.speedTimerSeconds ?? 15}s</span>
+                        <Button variant="outline" size="icon" className="h-8 w-8"
+                          onClick={() => (settings.speedTimerSeconds ?? 15) < 120 && updateSettings({ speedTimerSeconds: (settings.speedTimerSeconds ?? 15) + 1 })}
+                          disabled={(settings.speedTimerSeconds ?? 15) >= 120}>+</Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Timer setting for suddendeath mode */}
+                {selectedGameMode === "suddendeath" && (
+                  <div className="mt-4 p-4 bg-secondary/30 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">Thời gian đếm ngược</p>
+                        <p className="text-xs text-muted-foreground">Số giây để trả lời mỗi câu hỏi</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="h-8 w-8"
+                          onClick={() => (settings.suddendeathTimerSeconds ?? 15) > 1 && updateSettings({ suddendeathTimerSeconds: (settings.suddendeathTimerSeconds ?? 15) - 1 })}
+                          disabled={(settings.suddendeathTimerSeconds ?? 15) <= 1}>-</Button>
+                        <span className="w-12 text-center font-bold text-lg">{settings.suddendeathTimerSeconds ?? 15}s</span>
+                        <Button variant="outline" size="icon" className="h-8 w-8"
+                          onClick={() => (settings.suddendeathTimerSeconds ?? 15) < 120 && updateSettings({ suddendeathTimerSeconds: (settings.suddendeathTimerSeconds ?? 15) + 1 })}
+                          disabled={(settings.suddendeathTimerSeconds ?? 15) >= 120}>+</Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Timer setting for teambattle mode */}
+                {selectedGameMode === "teambattle" && (
+                  <div className="mt-4 p-4 bg-secondary/30 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">Thời gian đếm ngược</p>
+                        <p className="text-xs text-muted-foreground">Số giây để trả lời mỗi câu hỏi</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="h-8 w-8"
+                          onClick={() => (settings.teambattleTimerSeconds ?? 15) > 1 && updateSettings({ teambattleTimerSeconds: (settings.teambattleTimerSeconds ?? 15) - 1 })}
+                          disabled={(settings.teambattleTimerSeconds ?? 15) <= 1}>-</Button>
+                        <span className="w-12 text-center font-bold text-lg">{settings.teambattleTimerSeconds ?? 15}s</span>
+                        <Button variant="outline" size="icon" className="h-8 w-8"
+                          onClick={() => (settings.teambattleTimerSeconds ?? 15) < 120 && updateSettings({ teambattleTimerSeconds: (settings.teambattleTimerSeconds ?? 15) + 1 })}
+                          disabled={(settings.teambattleTimerSeconds ?? 15) >= 120}>+</Button>
                       </div>
                     </div>
                   </div>
