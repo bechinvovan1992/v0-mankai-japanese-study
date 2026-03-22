@@ -437,8 +437,13 @@ export function GameBoard() {
   const handleMultipleChoiceSelect = (index: number) => {
     if (showAnswer) return
     setSelectedAnswerIndex(index)
-    revealByUserRef.current = true
-    setShowAnswer(true)
+    // For modes with a manual reveal button (speed, suddendeath, teambattle, guess):
+    // only record the selection — do NOT reveal answer yet.
+    // For modes with immediate reveal (multiple, hidden):
+    if (gameRound?.gameMode === "multiple" || gameRound?.gameMode === "hidden") {
+      revealByUserRef.current = true
+      setShowAnswer(true)
+    }
   }
 
   const handleTrueFalseAnswer = (userSaysTrue: boolean) => {
@@ -1171,7 +1176,7 @@ export function GameBoard() {
                       </Button>
                     </>
                   )}
-                  {(gameRound?.gameMode === "multiple" || gameRound?.gameMode === "elimination" || gameRound?.gameMode === "hidden" || gameRound?.gameMode === "speed") && (
+                  {(gameRound?.gameMode === "multiple" || gameRound?.gameMode === "elimination" || gameRound?.gameMode === "hidden" || gameRound?.gameMode === "speed" || gameRound?.gameMode === "suddendeath" || gameRound?.gameMode === "teambattle") && (
                     <Button
                       onClick={() => {
                         const isCorrect = selectedAnswerIndex !== null && 
