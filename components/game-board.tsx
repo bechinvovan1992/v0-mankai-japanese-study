@@ -184,14 +184,7 @@ export function GameBoard() {
   useEffect(() => {
     if (timeLeft === 0 && timerActive) {
       setTimerActive(false)
-      // For "speed" mode: auto-reveal answer when time runs out
-      // For "guess" mode: do NOT auto-reveal, user must click "Hiện Đáp Án"
-      const isSpeedMode = gameRound?.gameMode === "speed"
-      if (isSpeedMode) {
-        revealByUserRef.current = false
-        setShowAnswer(true)
-        playWrong()
-      }
+      // Both speed and guess modes: do NOT auto-reveal, user must click "Hiện Đáp Án"
       toast.error("Hết giờ!")
     }
     // Note: gameRound and playWrong are intentionally not in deps - we only react to timer changes
@@ -267,8 +260,7 @@ export function GameBoard() {
     setSelectedQuestion(null)
     setShowAnswer(false)
     setEliminatedAnswers([])
-    setTimeLeft(10)
-    setTimerActive(false)
+  setTimeLeft(15)
     setHiddenAnswersRevealed(false)
     setTrueFalseAnswer(null)
     setTrueFalseIsCorrect(false)
@@ -304,9 +296,10 @@ export function GameBoard() {
     setLastClickedMapping(null) // Reset mapping tracking when opening new question
     
     // Setup for specific modes
-    if (gameRound?.gameMode === "speed") {
-      setTimeLeft(10)
-      setTimerActive(true)
+  if (gameRound?.gameMode === "speed") {
+  setTimeLeft(15)
+  setTimerActive(false)
+    setTimerActive(true)
     } else if (gameRound?.gameMode === "guess") {
       setTimeLeft(gameRound.guessTimerSeconds || 10) // Use locked value from game round
       setTimerActive(true)
@@ -869,7 +862,7 @@ export function GameBoard() {
                 </span>
               </div>
               <Progress 
-                value={(timeLeft / (gameRound?.gameMode === "guess" ? (gameRound.guessTimerSeconds || 10) : 10)) * 100} 
+                value={(timeLeft / (gameRound?.gameMode === "guess" ? (gameRound.guessTimerSeconds || 10) : 15)) * 100} 
                 className="h-3" 
               />
             </div>
@@ -1098,8 +1091,8 @@ export function GameBoard() {
           {/* Action Buttons */}
           {gameRound?.gameMode !== "truefalse" && (
             <div className="flex flex-wrap gap-3">
-              {/* Guess Mode - Show reveal button */}
-              {gameRound?.gameMode === "guess" && !showAnswer && (
+  {/* Speed / Guess Mode - Show reveal button */}
+  {(gameRound?.gameMode === "guess" || gameRound?.gameMode === "speed") && !showAnswer && (
                 <Button
                   onClick={() => {
                     revealByUserRef.current = true
