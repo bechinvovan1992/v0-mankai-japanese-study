@@ -57,7 +57,10 @@ export interface GameRound {
   totalQuestions: number
   remainingQuestions: number
   gameMode: GameMode
-  guessTimerSeconds?: number // Locked timer value for guess mode
+  guessTimerSeconds?: number     // Locked timer for guess mode
+  speedTimerSeconds?: number     // Locked timer for speed mode
+  suddendeathTimerSeconds?: number // Locked timer for suddendeath mode
+  teambattleTimerSeconds?: number  // Locked timer for teambattle mode
   teams?: Team[]
   currentTeamIndex?: number
   suddenDeathEliminated?: string[] // Player IDs who are eliminated
@@ -71,7 +74,10 @@ export interface Settings {
   autoPlayFrontTime: number
   autoPlayBackTime: number
   googleSheetUrl: string
-  guessTimerSeconds: number // Timer for guess mode (default 10)
+  guessTimerSeconds: number      // Timer for guess mode (default 10)
+  speedTimerSeconds: number      // Timer for speed mode (default 15)
+  suddendeathTimerSeconds: number // Timer for suddendeath mode (default 15)
+  teambattleTimerSeconds: number  // Timer for teambattle mode (default 15)
 }
 
 /** Tùy chọn khi markQuestionPlayed(..., false) — trừ điểm team / bỏ trừ player (ví dụ cướp điểm thất bại) */

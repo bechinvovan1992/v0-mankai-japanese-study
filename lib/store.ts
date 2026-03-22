@@ -91,6 +91,9 @@ const defaultSettings: Settings = {
   autoPlayBackTime: 3,
   googleSheetUrl: "",
   guessTimerSeconds: 10,
+  speedTimerSeconds: 15,
+  suddendeathTimerSeconds: 15,
+  teambattleTimerSeconds: 15,
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15)
@@ -305,8 +308,11 @@ export const useAppStore = create<AppState>()(
             currentPlayerIndex: 0,
             totalQuestions: shuffledQuestions.length,
             remainingQuestions: shuffledQuestions.length,
-            gameMode: state.selectedGameMode,
-            guessTimerSeconds: state.settings.guessTimerSeconds || 10, // Lock timer value when game starts
+  gameMode: state.selectedGameMode,
+          guessTimerSeconds: state.settings.guessTimerSeconds || 10,
+          speedTimerSeconds: state.settings.speedTimerSeconds || 15,
+          suddendeathTimerSeconds: state.settings.suddendeathTimerSeconds || 15,
+          teambattleTimerSeconds: state.settings.teambattleTimerSeconds || 15,
             suddenDeathEliminated: [],
           },
         })

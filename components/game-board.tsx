@@ -63,7 +63,7 @@ const gameModes: { id: GameMode; name: string; icon: React.ReactNode; descriptio
   { id: "guess", name: "Đoán Đáp Án", icon: <HelpCircle className="w-5 h-5" />, description: "Trả lời miệng, bấm hiện đáp án" },
   { id: "multiple", name: "Trắc Nghiệm", icon: <CircleDot className="w-5 h-5" />, description: "Chọn 1 trong 4 đáp án" },
   { id: "elimination", name: "Loại Trừ", icon: <Trash2 className="w-5 h-5" />, description: "Loại bỏ đáp án sai trước" },
-  { id: "speed", name: "Tốc Độ", icon: <Timer className="w-5 h-5" />, description: "Đếm ngược 10 giây" },
+  { id: "speed", name: "Tốc Độ", icon: <Timer className="w-5 h-5" />, description: "Trả lời trong 15 giây" },
   { id: "hidden", name: "Ẩn Đáp Án", icon: <EyeOff className="w-5 h-5" />, description: "Hiện đáp án sau vài giây" },
   { id: "truefalse", name: "Đúng Sai", icon: <Target className="w-5 h-5" />, description: "Đúng hay Sai?" },
   { id: "suddendeath", name: "Sinh Tử", icon: <Skull className="w-5 h-5" />, description: "Sai là bị loại!" },
@@ -184,14 +184,7 @@ export function GameBoard() {
   useEffect(() => {
     if (timeLeft === 0 && timerActive) {
       setTimerActive(false)
-      // For "speed" mode: auto-reveal answer when time runs out
-      // For "guess" mode: do NOT auto-reveal, user must click "Hiện Đáp Án"
-      const isSpeedMode = gameRound?.gameMode === "speed"
-      if (isSpeedMode) {
-        revealByUserRef.current = false
-        setShowAnswer(true)
-        playWrong()
-      }
+      // Both speed and guess modes: do NOT auto-reveal, user must click "Hiện Đáp Án"
       toast.error("Hết giờ!")
     }
     // Note: gameRound and playWrong are intentionally not in deps - we only react to timer changes
@@ -267,8 +260,7 @@ export function GameBoard() {
     setSelectedQuestion(null)
     setShowAnswer(false)
     setEliminatedAnswers([])
-    setTimeLeft(10)
-    setTimerActive(false)
+  setTimeLeft(15)
     setHiddenAnswersRevealed(false)
     setTrueFalseAnswer(null)
     setTrueFalseIsCorrect(false)
@@ -305,10 +297,19 @@ export function GameBoard() {
     
     // Setup for specific modes
     if (gameRound?.gameMode === "speed") {
-      setTimeLeft(10)
+      setTimeLeft(gameRound.speedTimerSeconds || 15)
+      setTimerActive(false)
       setTimerActive(true)
     } else if (gameRound?.gameMode === "guess") {
-      setTimeLeft(gameRound.guessTimerSeconds || 10) // Use locked value from game round
+      setTimeLeft(gameRound.guessTimerSeconds || 10)
+      setTimerActive(true)
+    } else if (gameRound?.gameMode === "suddendeath") {
+      setTimeLeft(gameRound.suddendeathTimerSeconds || 15)
+      setTimerActive(false)
+      setTimerActive(true)
+    } else if (gameRound?.gameMode === "teambattle") {
+      setTimeLeft(gameRound.teambattleTimerSeconds || 15)
+      setTimerActive(false)
       setTimerActive(true)
     }
     if (gameRound?.gameMode === "truefalse") {
@@ -854,7 +855,7 @@ export function GameBoard() {
           </DialogHeader>
 
           {/* Speed Mode Timer */}
-          {(gameRound?.gameMode === "speed" || gameRound?.gameMode === "guess") && !showAnswer && (
+          {(gameRound?.gameMode === "speed" || gameRound?.gameMode === "guess" || gameRound?.gameMode === "suddendeath" || gameRound?.gameMode === "teambattle") && !showAnswer && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium flex items-center gap-2">
@@ -869,7 +870,12 @@ export function GameBoard() {
                 </span>
               </div>
               <Progress 
-                value={(timeLeft / (gameRound?.gameMode === "guess" ? (gameRound.guessTimerSeconds || 10) : 10)) * 100} 
+                value={(timeLeft / (
+                  gameRound?.gameMode === "guess" ? (gameRound.guessTimerSeconds || 10) :
+                  gameRound?.gameMode === "suddendeath" ? (gameRound.suddendeathTimerSeconds || 15) :
+                  gameRound?.gameMode === "teambattle" ? (gameRound.teambattleTimerSeconds || 15) :
+                  (gameRound.speedTimerSeconds || 15)
+                )) * 100} 
                 className="h-3" 
               />
             </div>
@@ -1034,9 +1040,10 @@ export function GameBoard() {
                   <button
                     key={index}
                     onClick={() => {
+                      if (showAnswer) return
                       if (gameRound?.gameMode === "elimination" && !showAnswer) {
                         handleEliminateAnswer(index)
-                      } else if (gameRound?.gameMode === "multiple" || gameRound?.gameMode === "hidden") {
+                      } else if (gameRound?.gameMode === "multiple" || gameRound?.gameMode === "hidden" || gameRound?.gameMode === "speed" || gameRound?.gameMode === "suddendeath" || gameRound?.gameMode === "teambattle") {
                         handleMultipleChoiceSelect(index)
                       }
                     }}
@@ -1046,14 +1053,17 @@ export function GameBoard() {
                       isEliminated && "opacity-30 line-through",
                       showAsCorrect && "border-success bg-success/20",
                       showAsWrong && "border-destructive bg-destructive/20",
-                      !showAnswer && !isEliminated && "hover:border-primary hover:bg-primary/5 cursor-pointer",
-                      !showAnswer && !isEliminated && "border-border/50"
+                      // Selected but answer not shown yet
+                      !showAnswer && isSelected && !isEliminated && "border-primary bg-primary/10 ring-2 ring-primary/30",
+                      !showAnswer && !isSelected && !isEliminated && "hover:border-primary hover:bg-primary/5 cursor-pointer border-border/50",
                     )}
                   >
                     <span className={cn(
                       "inline-flex items-center justify-center w-8 h-8 rounded-lg mr-3 text-sm font-bold",
                       showAsCorrect ? "bg-success text-success-foreground" : 
-                      showAsWrong ? "bg-destructive text-destructive-foreground" : "bg-secondary"
+                      showAsWrong ? "bg-destructive text-destructive-foreground" :
+                      isSelected && !showAnswer ? "bg-primary text-primary-foreground" :
+                      "bg-secondary"
                     )}>
                       {["A", "B", "C", "D"][index]}
                     </span>
@@ -1098,8 +1108,8 @@ export function GameBoard() {
           {/* Action Buttons */}
           {gameRound?.gameMode !== "truefalse" && (
             <div className="flex flex-wrap gap-3">
-              {/* Guess Mode - Show reveal button */}
-              {gameRound?.gameMode === "guess" && !showAnswer && (
+  {/* Speed / Guess / Suddendeath / Teambattle Mode - Show reveal button */}
+                  {(gameRound?.gameMode === "guess" || gameRound?.gameMode === "speed" || gameRound?.gameMode === "suddendeath" || gameRound?.gameMode === "teambattle") && !showAnswer && (
                 <Button
                   onClick={() => {
                     revealByUserRef.current = true
