@@ -1120,6 +1120,18 @@ export function GameBoard() {
                     revealByUserRef.current = true
                     setShowAnswer(true)
                     setTimerActive(false)
+                    // For speed/suddendeath/teambattle, score immediately after reveal
+                    if (gameRound?.gameMode === "speed" || gameRound?.gameMode === "suddendeath" || gameRound?.gameMode === "teambattle") {
+                      setTimeout(() => {
+                        const isCorrect = selectedAnswerIndex !== null &&
+                          selectedQuestion?.answers[selectedAnswerIndex] === selectedQuestion?.correct
+                        if (isCorrect) {
+                          handleMarkCorrect()
+                        } else {
+                          handleMarkWrong()
+                        }
+                      }, 500)
+                    }
                   }}
                   className="flex-1 bg-gradient-fun hover:opacity-90"
                   size="lg"
